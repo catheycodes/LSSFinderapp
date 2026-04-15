@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Service - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem; display: flex; align-items: center; justify-content: center; }
+        .booking-container { max-width: 700px; width: 100%; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        .booking-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; position: relative; }
+        .back-btn { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.2); color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-weight: 600; font-family: inherit; }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        .booking-header h1 { margin-bottom: 0.5rem; }
+        .booking-header p  { opacity: 0.9; }
+        .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; gap: 1rem; }
+        .spinner { width: 48px; height: 48px; border: 5px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #667eea; font-weight: 600; }
+        .db-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(76,175,80,0.15); border: 1px solid rgba(76,175,80,0.4); border-radius: 20px; padding: 0.2rem 0.8rem; font-size: 0.75rem; color: #2e7d32; font-weight: 600; }
+        .worker-info-card { background: #f8f9fa; padding: 1.25rem 1.5rem; margin: 1.5rem 2rem 0; border-radius: 12px; display: flex; align-items: center; gap: 1rem; border: 2px solid #e8e8e8; }
+        .worker-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: bold; flex-shrink: 0; overflow: hidden; }
+        .worker-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .worker-avatar.has-photo span { display: none; }
+        .worker-avatar.has-photo img  { display: block; }
+        .worker-details h3  { color: #333; margin-bottom: 0.2rem; }
+        .worker-category    { color: #667eea; font-size: 0.9rem; font-weight: 700; }
+        .worker-meta        { color: #666; font-size: 0.82rem; margin-top: 0.25rem; line-height: 1.6; }
+        .worker-service-info { background: #f5f7ff; border: 2px solid #dde1fc; border-radius: 10px; padding: 1.25rem; }
+        .wsi-row { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.85rem; }
+        .wsi-row:last-child { margin-bottom: 0; }
+        .wsi-label { font-size: 0.78rem; font-weight: 700; color: #667eea; min-width: 90px; padding-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .wsi-value { color: #333; font-size: 0.92rem; line-height: 1.5; }
+        .category-badge { display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 20px; padding: 0.25rem 1rem; font-weight: 700; font-size: 0.88rem; }
+        .wsi-skills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .wsi-skill-tag { background: #e8eaff; color: #4a3fb5; border-radius: 12px; padding: 3px 10px; font-size: 0.82rem; font-weight: 600; }
+        .wsi-avail { display: flex; flex-wrap: wrap; gap: 5px; }
+        .wsi-day { background: #e8f5e9; color: #2e7d32; border-radius: 10px; padding: 2px 9px; font-size: 0.8rem; font-weight: 600; }
+
+        /* QR PAYMENT CARD */
+        .qr-payment-card { margin: 1.25rem 2rem 0; background: linear-gradient(135deg, #fff9f0 0%, #f0f4ff 100%); border: 2px solid #c5cef9; border-radius: 14px; overflow: hidden; display: none; }
+        .qr-payment-card.show { display: block; }
+        .qr-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.85rem 1.25rem; display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 0.92rem; }
+        .qr-card-header .qr-hdr-icon { font-size: 1.3rem; }
+        .qr-card-body { padding: 1.25rem 1.5rem; }
+        .qr-card-desc { font-size: 0.85rem; color: #555; margin-bottom: 1.1rem; line-height: 1.6; }
+        .qr-img-section { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+        .qr-img-frame { position: relative; padding: 12px; background: white; border-radius: 14px; box-shadow: 0 4px 20px rgba(102,126,234,0.2); border: 2px solid #e0e6ff; }
+        .qr-img-frame img { display: block; width: 180px; height: 180px; object-fit: contain; border-radius: 8px; }
+        .qr-scan-badge { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 0.72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
+        .qr-worker-name-badge { font-size: 0.88rem; font-weight: 700; color: #4a3fb5; background: #e8eaff; border-radius: 20px; padding: 4px 14px; }
+        .qr-apps-row { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem; }
+        .qr-app-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: white; border: 1.5px solid #e0e0e0; border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; color: #444; }
+        .qr-upi-section { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+        .qr-upi-display { background: white; border: 2px solid #c5cef9; border-radius: 12px; padding: 1rem 1.5rem; text-align: center; width: 100%; max-width: 340px; }
+        .qr-upi-label { font-size: 0.75rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+        .qr-upi-id { font-size: 1.05rem; font-weight: 700; color: #4a3fb5; word-break: break-all; }
+        .qr-upi-copy-btn { margin-top: 0.6rem; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; padding: 0.45rem 1.1rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .qr-note { font-size: 0.78rem; color: #888; text-align: center; margin-top: 0.5rem; line-height: 1.5; }
+        .qr-toggle-btn { display: flex; align-items: center; gap: 0.4rem; margin: 0 auto; background: none; border: 1.5px solid #c5cef9; border-radius: 20px; color: #667eea; font-size: 0.82rem; font-weight: 600; padding: 0.4rem 1rem; cursor: pointer; font-family: inherit; }
+
+        .booking-form { padding: 1.5rem 2rem 2rem; }
+        .form-section { margin-bottom: 1.75rem; }
+        .form-section h3 { color: #333; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f0f0f0; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.45rem; color: #333; font-weight: 500; font-size: 0.92rem; }
+        .required { color: #dc3545; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; font-family: inherit; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .urgency-options { display: flex; gap: 1rem; margin-top: 0.5rem; }
+        .urgency-option { flex: 1; position: relative; }
+        .urgency-option input[type="radio"] { position: absolute; opacity: 0; }
+        .urgency-label { display: block; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; font-weight: 500; }
+        .urgency-option input[type="radio"]:checked + .urgency-label { background: #667eea; color: white; border-color: #667eea; }
+
+        /* ── AMOUNT SECTION ── */
+        .amount-section { background: linear-gradient(135deg, #f0fff4 0%, #f0f4ff 100%); border: 2px solid #6ee7b7; border-radius: 12px; padding: 1.25rem 1.5rem; margin-top: 0.75rem; }
+        .amount-section-title { font-size: 0.9rem; font-weight: 700; color: #065f46; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .amount-input-wrap { position: relative; display: flex; align-items: center; }
+        .amount-rupee { position: absolute; left: 0.85rem; font-size: 1.1rem; font-weight: 700; color: #667eea; pointer-events: none; }
+        .amount-input { padding-left: 2rem !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #1b5e20 !important; border-color: #6ee7b7 !important; background: white; }
+        .amount-input:focus { border-color: #667eea !important; }
+        .amount-hint { font-size: 0.78rem; color: #888; margin-top: 0.4rem; }
+        .price-range-ref { display: inline-flex; align-items: center; gap: 0.4rem; background: #e8f5e9; border: 1px solid #a7f3d0; border-radius: 20px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; color: #065f46; margin-top: 0.5rem; }
+
+        .price-estimate { background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px; padding: 1rem; margin-top: 0.5rem; }
+        .price-estimate h4 { color: #2e7d32; margin-bottom: 0.35rem; }
+        .price-estimate .price { font-size: 1.4rem; font-weight: bold; color: #1b5e20; }
+        .price-estimate p   { color: #555; font-size: 0.85rem; margin-top: 0.4rem; }
+        .terms-checkbox { display: flex; align-items: center; gap: 0.5rem; margin: 1.25rem 0; }
+        .terms-checkbox input { width: auto; cursor: pointer; }
+        .terms-checkbox label { color: #555; font-size: 0.9rem; }
+        .action-buttons { display: flex; gap: 1rem; }
+        .btn { flex: 1; padding: 0.95rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .btn-cancel { background: #f0f0f0; color: #333; }
+        .btn-cancel:hover { background: #e0e0e0; }
+        .btn-submit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .success-message { display: none; text-align: center; padding: 3rem 2rem; }
+        .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .success-message h2 { color: #4caf50; margin-bottom: 1rem; }
+        .success-message p  { color: #666; margin-bottom: 2rem; line-height: 1.6; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin: 0 2rem 1rem; font-weight: 500; display: none; }
+        .alert-error   { background: #fee; color: #c33; border: 1px solid #fcc; }
+        .alert-success { background: #efe; color: #383; border: 1px solid #cfc; }
+        @media (max-width: 600px) { body { padding: 0; } .booking-container { border-radius: 0; } .form-row { grid-template-columns: 1fr; } .urgency-options { flex-direction: column; } .action-buttons { flex-direction: column; } .worker-info-card { margin: 1rem; } .booking-form { padding: 1rem; } .qr-payment-card { margin: 1rem; } }
+    </style>
+</head>
+<body>
+<div class="booking-container">
+    <div class="booking-header">
+        <button class="back-btn" onclick="window.history.back()">&#8592; Back</button>
+        <h1>&#128197; Book Service</h1>
+        <p>Fill in the details to request a service</p>
+    </div>
+    <div id="loadingWrap" class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading worker details from database...</div>
+    </div>
+    <div id="alertMsg" class="alert"></div>
+    <div id="bookingFormSection" style="display:none;">
+        <div class="worker-info-card">
+            <div class="worker-avatar" id="workerAvatar">
+                <span id="workerAvatarInitial">?</span>
+                <img id="workerAvatarImg" src="" alt="">
+            </div>
+            <div class="worker-details">
+                <h3 id="workerName">Loading...</h3>
+                <div class="worker-category" id="workerCategory"></div>
+                <div class="worker-meta" id="workerMeta"></div>
+                <div style="margin-top:0.4rem;" id="dbBadgeWrap"></div>
+            </div>
+        </div>
+
+        <!-- QR PAYMENT CARD -->
+        <div class="qr-payment-card" id="qrPaymentCard">
+            <div class="qr-card-header">
+                <span class="qr-hdr-icon">&#128181;</span>
+                <span>Pay <span id="qrWorkerNameHdr">Worker</span> via QR / UPI</span>
+            </div>
+            <div class="qr-card-body">
+                <div class="qr-card-desc">&#9889; You can pay <strong id="qrWorkerNameBody">the worker</strong> directly after the service is done.</div>
+                <div class="qr-img-section" id="qrImgSection" style="display:none;">
+                    <div class="qr-img-frame">
+                        <img id="qrDisplayImg" src="" alt="Payment QR Code">
+                        <div class="qr-scan-badge">&#128243; Scan to Pay</div>
+                    </div>
+                    <div class="qr-worker-name-badge" id="qrNameBadge"></div>
+                    <div class="qr-apps-row">
+                        <span class="qr-app-chip">&#128241; GPay</span>
+                        <span class="qr-app-chip">&#128241; PhonePe</span>
+                        <span class="qr-app-chip">&#128241; Paytm</span>
+                        <span class="qr-app-chip">&#128241; BHIM</span>
+                    </div>
+                    <div class="qr-note">&#8505;&#65039; Open any UPI app &rarr; Scan QR &rarr; Enter amount &rarr; Pay</div>
+                    <button class="qr-toggle-btn" id="qrShowUpiBtn" style="display:none;" onclick="toggleQrUpiView()">&#128279; Show UPI ID instead</button>
+                </div>
+                <div class="qr-upi-section" id="qrUpiSection" style="display:none;">
+                    <div class="qr-upi-display">
+                        <div class="qr-upi-label">&#128279; UPI / Payment ID</div>
+                        <div class="qr-upi-id" id="qrUpiDisplay"></div>
+                        <button class="qr-upi-copy-btn" onclick="copyUpiId()">&#128203; Copy UPI ID</button>
+                    </div>
+                    <div class="qr-apps-row">
+                        <span class="qr-app-chip">&#128241; GPay</span>
+                        <span class="qr-app-chip">&#128241; PhonePe</span>
+                        <span class="qr-app-chip">&#128241; Paytm</span>
+                        <span class="qr-app-chip">&#128241; Any UPI</span>
+                    </div>
+                    <div class="qr-note">&#8505;&#65039; Open any UPI app &rarr; Send Money &rarr; Paste this UPI ID &rarr; Pay</div>
+                    <button class="qr-toggle-btn" id="qrShowQrBtn" style="display:none;" onclick="toggleQrUpiView()">&#128243; Show QR Code instead</button>
+                </div>
+            </div>
+        </div>
+
+        <form class="booking-form" id="bookingForm" onsubmit="submitBooking(event)">
+            <div class="form-section">
+                <h3>&#128736;&#65039; Worker Service Details</h3>
+                <div id="workerServiceInfo" class="worker-service-info">
+                    <div style="color:#aaa;font-size:0.9rem;">Loading...</div>
+                </div>
+                <div class="form-group" style="margin-top:1.25rem;">
+                    <label for="description">Your Problem Description <span class="required">*</span></label>
+                    <textarea id="description" placeholder="Describe your issue in detail so the worker can prepare..." required></textarea>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>&#128198; Schedule</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="preferredDate">Preferred Date <span class="required">*</span></label>
+                        <input type="date" id="preferredDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="preferredTime">Preferred Time <span class="required">*</span></label>
+                        <input type="time" id="preferredTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Urgency Level <span class="required">*</span></label>
+                    <div class="urgency-options">
+                        <div class="urgency-option"><input type="radio" id="normal" name="urgency" value="normal" checked><label for="normal" class="urgency-label">&#128994; Normal</label></div>
+                        <div class="urgency-option"><input type="radio" id="urgent" name="urgency" value="urgent"><label for="urgent" class="urgency-label">&#128993; Urgent</label></div>
+                        <div class="urgency-option"><input type="radio" id="emergency" name="urgency" value="emergency"><label for="emergency" class="urgency-label">&#128308; Emergency</label></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>&#128205; Your Contact &amp; Location</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactName">Your Name <span class="required">*</span></label>
+                        <input type="text" id="contactName" placeholder="Enter your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhone">Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="contactPhone" placeholder="+91 98765 43210" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="serviceAddress">Service Address <span class="required">*</span></label>
+                    <textarea id="serviceAddress" placeholder="Enter complete address where service is required" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="landmark">Nearby Landmark</label>
+                    <input type="text" id="landmark" placeholder="e.g., Near City Hospital">
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>&#8505;&#65039; Additional Information</h3>
+                <div class="form-group">
+                    <label for="additionalNotes">Special Instructions (Optional)</label>
+                    <textarea id="additionalNotes" placeholder="Any specific requirements..."></textarea>
+                </div>
+
+                <!-- ESTIMATED CHARGE + CUSTOMER AMOUNT INPUT -->
+                <div class="price-estimate">
+                    <h4>&#128176; Estimated Service Charge</h4>
+                    <div class="price" id="priceDisplay">—</div>
+                    <p>Worker's price range for reference</p>
+                </div>
+
+                <!-- CUSTOMER AMOUNT INPUT -->
+                <div class="amount-section" style="margin-top:1rem;">
+                    <div class="amount-section-title">&#128178; How much will you pay?</div>
+                    <div id="priceRangeRef" class="price-range-ref" style="margin-bottom:0.75rem;display:none;">
+                        &#128176; Worker charges: <span id="priceRangeText"></span>
+                    </div>
+                    <div class="amount-input-wrap">
+                        <span class="amount-rupee">&#8377;</span>
+                        <input type="number" class="form-group input amount-input" id="customerAmount"
+                            placeholder="Enter amount you agree to pay"
+                            min="0" step="0.01"
+                            style="width:100%;padding:0.75rem 0.75rem 0.75rem 2rem;border:2px solid #6ee7b7;border-radius:8px;font-size:1.2rem;font-weight:700;color:#1b5e20;font-family:inherit;">
+                    </div>
+                    <div class="amount-hint">&#8505;&#65039; This amount will be shown to the worker. Worker can accept or negotiate.</div>
+                </div>
+            </div>
+
+            <div class="terms-checkbox">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">I agree to the <a href="#" style="color:#667eea;">terms and conditions</a></label>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="btn btn-cancel" onclick="window.history.back()">Cancel</button>
+                <button type="submit" class="btn btn-submit" id="submitBtn">&#9989; Confirm Booking</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="successMessage" class="success-message">
+        <div class="success-icon">&#9989;</div>
+        <h2>Booking Successful!</h2>
+        <p>Your service request has been sent to <strong id="successWorkerName">the worker</strong>.<br>You will receive a confirmation shortly.</p>
+        <button class="btn btn-submit" onclick="window.location.href='user-dashboard.html'">View My Bookings</button>
+    </div>
+</div>
+
+<script>
+    var API_URL       = 'http://localhost:5000/api';
+    var currentWorker = null;
+    var qrViewMode    = 'qr';
+
+    function fmtTime(t) {
+        if (!t) return '';
+        var p = t.split(':'); var h = parseInt(p[0]); var m = parseInt(p[1]);
+        return (h%12||12) + ':' + (m<10?'0':'') + m + ' ' + (h>=12?'PM':'AM');
+    }
+    function showAlert(msg, type) {
+        var el = document.getElementById('alertMsg');
+        el.className = 'alert alert-' + (type||'error');
+        el.textContent = msg; el.style.display = 'block';
+        setTimeout(function(){ el.style.display='none'; }, 5000);
+    }
+
+    window.addEventListener('load', async function() {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('preferredDate').min   = today;
+        document.getElementById('preferredDate').value = today;
+
+        var params   = new URLSearchParams(window.location.search);
+        var workerId = params.get('worker_id') || params.get('workerId');
+        if (!workerId) { showNoWorker('No worker ID in URL!'); return; }
+
+        try {
+            var res  = await fetch(API_URL + '/worker/view/' + workerId);
+            var data = await res.json();
+            document.getElementById('loadingWrap').style.display = 'none';
+            if (data.success && data.worker) {
+                currentWorker = data.worker;
+                renderWorkerInfo(data.worker);
+                renderQrPayment(data.worker);
+                document.getElementById('bookingFormSection').style.display = 'block';
+            } else {
+                showNoWorker('Worker not found (ID: ' + workerId + ')');
+            }
+        } catch(err) {
+            document.getElementById('loadingWrap').style.display = 'none';
+            showNoWorker('Cannot connect to server! Make sure backend is running.');
+        }
+
+        try {
+            var user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.role === 'customer') {
+                if (user.full_name || user.name) document.getElementById('contactName').value    = user.full_name || user.name;
+                if (user.phone)                  document.getElementById('contactPhone').value   = user.phone;
+                if (user.address)                document.getElementById('serviceAddress').value = user.address;
+            }
+        } catch(e) {}
+    });
+
+    function renderWorkerInfo(w) {
+        var name = w.full_name || w.name || 'Worker';
+        var avatar  = document.getElementById('workerAvatar');
+        var initial = document.getElementById('workerAvatarInitial');
+        var img     = document.getElementById('workerAvatarImg');
+        initial.textContent = name.charAt(0).toUpperCase();
+        if (w.profile_photo) { img.src = w.profile_photo; avatar.classList.add('has-photo'); }
+
+        document.getElementById('workerName').textContent   = name;
+        document.getElementById('workerCategory').innerHTML = '&#128295; ' + esc(w.category || 'Professional');
+        document.getElementById('workerMeta').innerHTML =
+            '&#128205; ' + esc(w.city||'—') +
+            ' &nbsp;|&nbsp; &#127942; ' + esc(w.experience||'0') + ' yrs exp' +
+            ' &nbsp;|&nbsp; &#128241; ' + esc(w.phone||'—');
+        document.getElementById('dbBadgeWrap').innerHTML =
+            '<span class="db-badge">&#128451;&#65039; Loaded from Database &bull; Worker #' + w.id + '</span>';
+
+        // Price display
+        if (w.min_price != null && w.max_price != null) {
+            document.getElementById('priceDisplay').innerHTML =
+                '&#8377;' + Number(w.min_price).toLocaleString('en-IN') +
+                ' &ndash; &#8377;' + Number(w.max_price).toLocaleString('en-IN');
+            // Show price range reference in amount section
+            var priceText = '₹' + Number(w.min_price).toLocaleString('en-IN') +
+                            ' – ₹' + Number(w.max_price).toLocaleString('en-IN');
+            document.getElementById('priceRangeText').textContent = priceText;
+            document.getElementById('priceRangeRef').style.display = 'inline-flex';
+            // Set placeholder as midpoint
+            var mid = Math.round((parseFloat(w.min_price) + parseFloat(w.max_price)) / 2);
+            document.getElementById('customerAmount').placeholder = 'e.g. ' + mid;
+        }
+
+        var skillsList = w.skills ? w.skills.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+        var availDays  = Array.isArray(w.availability) ? w.availability : (w.availability ? w.availability.split(',') : []);
+        var html = '';
+        html += '<div class="wsi-row"><span class="wsi-label">&#128295; Service</span><span class="wsi-value"><span class="category-badge">'+esc(w.category||'—')+'</span></span></div>';
+        if (skillsList.length > 0) html += '<div class="wsi-row"><span class="wsi-label">&#127919; Skills</span><span class="wsi-value"><div class="wsi-skills">'+skillsList.map(function(s){ return '<span class="wsi-skill-tag">'+esc(s)+'</span>'; }).join('')+'</div></span></div>';
+        if (w.description) html += '<div class="wsi-row"><span class="wsi-label">&#128172; About</span><span class="wsi-value">'+esc(w.description)+'</span></div>';
+        if (availDays.length > 0) html += '<div class="wsi-row"><span class="wsi-label">&#128197; Available</span><span class="wsi-value"><div class="wsi-avail">'+availDays.map(function(d){ return '<span class="wsi-day">'+d.slice(0,3)+'</span>'; }).join('')+'</div></span></div>';
+        var st = w.start_time||''; var et = w.end_time||'';
+        if (st && et) html += '<div class="wsi-row"><span class="wsi-label">&#128336; Hours</span><span class="wsi-value">'+fmtTime(st)+' &ndash; '+fmtTime(et)+'</span></div>';
+        if (w.experience) html += '<div class="wsi-row"><span class="wsi-label">&#128188; Exp.</span><span class="wsi-value">'+esc(String(w.experience))+' years</span></div>';
+        document.getElementById('workerServiceInfo').innerHTML = html || '<p style="color:#aaa;font-size:0.9rem;">No details.</p>';
+    }
+
+    function renderQrPayment(w) {
+        var pqr = w.payment_qr || {};
+        if (typeof pqr === 'string') { try { pqr = JSON.parse(pqr); } catch(e) { pqr = {}; } }
+        var hasQrImg = !!(pqr.qr_image && pqr.qr_image.length > 10);
+        var hasUpiId = !!(pqr.upi_id && pqr.upi_id.trim().length > 2);
+        if (!hasQrImg && !hasUpiId) return;
+        var wName = w.full_name || w.name || 'Worker';
+        document.getElementById('qrPaymentCard').classList.add('show');
+        document.getElementById('qrWorkerNameHdr').textContent  = wName;
+        document.getElementById('qrWorkerNameBody').textContent = wName;
+        if (hasQrImg) {
+            document.getElementById('qrDisplayImg').src = pqr.qr_image;
+            document.getElementById('qrNameBadge').textContent = '💳 ' + wName + "'s QR";
+            document.getElementById('qrImgSection').style.display = 'flex';
+            qrViewMode = 'qr';
+            if (hasUpiId) {
+                document.getElementById('qrShowUpiBtn').style.display = 'inline-flex';
+                document.getElementById('qrUpiDisplay').textContent = pqr.upi_id;
+                document.getElementById('qrShowQrBtn').style.display = 'inline-flex';
+            }
+        } else if (hasUpiId) {
+            document.getElementById('qrUpiDisplay').textContent = pqr.upi_id;
+            document.getElementById('qrUpiSection').style.display = 'flex';
+            qrViewMode = 'upi';
+        }
+    }
+
+    function toggleQrUpiView() {
+        var qrSec  = document.getElementById('qrImgSection');
+        var upiSec = document.getElementById('qrUpiSection');
+        if (qrViewMode === 'qr') { qrSec.style.display='none'; upiSec.style.display='flex'; qrViewMode='upi'; }
+        else { upiSec.style.display='none'; qrSec.style.display='flex'; qrViewMode='qr'; }
+    }
+
+    function copyUpiId() {
+        var upiId = document.getElementById('qrUpiDisplay').textContent;
+        if (!upiId) return;
+        navigator.clipboard.writeText(upiId).then(function() {
+            var btn = document.querySelector('.qr-upi-copy-btn');
+            var orig = btn.textContent; btn.textContent = '✅ Copied!';
+            setTimeout(function(){ btn.textContent = orig; }, 2000);
+        }).catch(function() {
+            var ta = document.createElement('textarea'); ta.value=upiId; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        });
+    }
+
+    function showNoWorker(msg) {
+        document.getElementById('bookingFormSection').style.display = 'none';
+        document.getElementById('loadingWrap').innerHTML =
+            '<div style="text-align:center;padding:3rem 2rem;">' +
+            '<div style="font-size:3rem;margin-bottom:1rem;">&#9888;&#65039;</div>' +
+            '<h3 style="color:#e53935;margin-bottom:0.75rem;">Worker Not Found</h3>' +
+            '<p style="color:#666;font-size:0.9rem;line-height:1.7;">' + msg + '</p>' +
+            '<p style="margin-top:1.5rem;"><a href="javascript:history.back()" style="color:#667eea;font-weight:600;">&#8592; Go Back</a></p></div>';
+        document.getElementById('loadingWrap').style.display = 'block';
+    }
+
+    async function submitBooking(event) {
+        event.preventDefault();
+        var amountVal = document.getElementById('customerAmount').value;
+        if (!amountVal || parseFloat(amountVal) <= 0) {
+            showAlert('Please enter the amount you agree to pay!', 'error');
+            document.getElementById('customerAmount').focus();
+            return;
+        }
+        var submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true; submitBtn.textContent = 'Confirming...';
+
+        var token = localStorage.getItem('token');
+        var user  = {};
+        try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) {}
+
+        var booking = {
+            worker_id:       currentWorker ? currentWorker.id : null,
+            worker_name:     currentWorker ? (currentWorker.full_name||currentWorker.name) : '—',
+            worker_category: currentWorker ? currentWorker.category : '—',
+            customer_id:     user.id || null,
+            customer_name:   document.getElementById('contactName').value,
+            customer_phone:  document.getElementById('contactPhone').value,
+            description:     document.getElementById('description').value,
+            preferred_date:  document.getElementById('preferredDate').value,
+            preferred_time:  document.getElementById('preferredTime').value,
+            urgency:         document.querySelector('input[name="urgency"]:checked').value,
+            address:         document.getElementById('serviceAddress').value,
+            landmark:        document.getElementById('landmark').value,
+            notes:           document.getElementById('additionalNotes').value,
+            customer_amount: parseFloat(amountVal),
+            amount_status:   'pending',
+            status:          'pending'
+        };
+
+        if (token) {
+            try {
+                var res  = await fetch(API_URL + '/booking/create', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body:    JSON.stringify(booking)
+                });
+                var data = await res.json();
+                if (!data.success) console.warn('DB save failed:', data.message);
+            } catch(e) { console.warn('Booking API not available'); }
+        }
+
+        var myBookings = [];
+        try { myBookings = JSON.parse(localStorage.getItem('myBookings') || '[]'); } catch(e) {}
+        booking.id   = Date.now();
+        booking.date = booking.preferred_date;
+        myBookings.unshift(booking);
+        localStorage.setItem('myBookings', JSON.stringify(myBookings));
+
+        document.getElementById('successWorkerName').textContent =
+            currentWorker ? (currentWorker.full_name || currentWorker.name) : 'the worker';
+        document.getElementById('bookingFormSection').style.display = 'none';
+        document.getElementById('successMessage').style.display     = 'block';
+        setTimeout(function() { window.location.href = 'user-dashboard.html'; }, 2500);
+    }
+
+    function esc(v) {
+        return String(v==null?'':v)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>
+</body>
+</html>

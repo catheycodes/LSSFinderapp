@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Status - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem 1rem; }
+        .page-wrapper { max-width: 720px; margin: 0 auto; }
+
+        .top-bar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+        .back-btn { background: rgba(255,255,255,0.22); color: white; border: none; padding: 0.55rem 1.2rem; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+        .top-bar h2 { color: white; font-size: 1.3rem; }
+
+        /* DB Badge */
+        .db-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(76,175,80,0.18); border: 1px solid rgba(76,175,80,0.45); border-radius: 20px; padding: 0.2rem 0.8rem; font-size: 0.72rem; color: #2e7d32; font-weight: 700; margin-left: auto; }
+        .db-badge-warn { background: rgba(255,152,0,0.15); border-color: rgba(255,152,0,0.4); color: #e65100; }
+
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; margin-bottom: 1.5rem; }
+
+        /* Loading */
+        .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; gap: 1rem; }
+        .spinner { width: 44px; height: 44px; border: 5px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #667eea; font-weight: 600; }
+
+        /* Status strip */
+        .status-strip { padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .status-strip.pending   { background: #fff8e1; border-bottom: 3px solid #ffc107; }
+        .status-strip.confirmed { background: #e8f5e9; border-bottom: 3px solid #4caf50; }
+        .status-strip.completed { background: #e3f2fd; border-bottom: 3px solid #2196f3; }
+        .status-strip.cancelled { background: #fce4ec; border-bottom: 3px solid #e91e63; }
+        .status-left h3 { font-size: 1.1rem; color: #333; margin-bottom: 0.3rem; }
+        .status-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .badge-pending   { background: #fff3cd; color: #856404; }
+        .badge-confirmed { background: #d4edda; color: #155724; }
+        .badge-completed { background: #d1ecf1; color: #0c5460; }
+        .badge-cancelled { background: #fde8e8; color: #922; }
+
+        /* Progress tracker */
+        .progress-track { padding: 1.5rem 2rem 0.5rem; }
+        .steps { display: flex; align-items: flex-start; position: relative; }
+        .steps::before { content: ''; position: absolute; top: 18px; left: 18px; right: 18px; height: 3px; background: #e0e0e0; z-index: 0; }
+        .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; position: relative; z-index: 1; }
+        .step-dot { width: 38px; height: 38px; border-radius: 50%; background: #e0e0e0; color: #999; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; border: 3px solid #e0e0e0; transition: all 0.3s; }
+        .step.done .step-dot   { background: #4caf50; border-color: #4caf50; color: white; }
+        .step.active .step-dot { background: #667eea; border-color: #667eea; color: white; box-shadow: 0 0 0 4px rgba(102,126,234,0.2); }
+        .step-label { font-size: 0.72rem; color: #999; text-align: center; font-weight: 500; }
+        .step.done .step-label   { color: #4caf50; }
+        .step.active .step-label { color: #667eea; font-weight: 700; }
+
+        /* Sections */
+        .section { padding: 1.5rem 2rem; border-bottom: 1px solid #f0f0f0; }
+        .section:last-child { border-bottom: none; }
+        .section-title { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; color: #999; text-transform: uppercase; margin-bottom: 1rem; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; }
+        .info-item label { font-size: 0.78rem; color: #999; display: block; margin-bottom: 0.2rem; }
+        .info-item span  { font-size: 0.97rem; color: #333; font-weight: 500; }
+
+        /* Worker mini */
+        .worker-mini { display: flex; align-items: center; gap: 1rem; background: #f8f9fa; border-radius: 10px; padding: 1rem; }
+        .worker-mini-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .worker-mini-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; border-radius: 50%; }
+        .worker-mini-avatar.has-photo span { display: none; }
+        .worker-mini-avatar.has-photo img  { display: block; }
+        .worker-mini-info h4   { color: #333; margin-bottom: 0.15rem; }
+        .worker-mini-info span { color: #667eea; font-size: 0.88rem; }
+        .worker-mini-info .wm-phone { color: #666; font-size: 0.82rem; margin-top: 0.1rem; }
+
+        /* Edit panels */
+        .edit-panel { display: none; background: #f9f9ff; border: 2px solid #c5cef9; border-radius: 12px; padding: 1.5rem; margin-top: 1rem; animation: slideDown 0.2s ease; }
+        .edit-panel.open { display: block; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .edit-panel h4 { font-size: 0.9rem; color: #667eea; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem; }
+        .edit-group { margin-bottom: 1.1rem; }
+        .edit-group label { display: block; font-size: 0.82rem; color: #555; font-weight: 600; margin-bottom: 0.35rem; }
+        .edit-group input, .edit-group textarea, .edit-group select { width: 100%; padding: 0.65rem 0.9rem; border: 2px solid #dde0f5; border-radius: 8px; font-size: 0.95rem; font-family: inherit; transition: border-color 0.2s; background: white; color: #333; }
+        .edit-group input:focus, .edit-group textarea:focus, .edit-group select:focus { outline: none; border-color: #667eea; }
+        .edit-group textarea { resize: vertical; min-height: 75px; }
+        .time-row { display: flex; gap: 0.5rem; align-items: center; }
+        .time-row select { flex: 1; }
+        .time-sep { color: #667eea; font-size: 1.2rem; font-weight: 700; flex-shrink: 0; }
+        .ampm-select { flex: 0.7; }
+        .edit-actions { display: flex; gap: 0.75rem; margin-top: 1.2rem; }
+        .btn-save { flex: 1; padding: 0.7rem; border: none; border-radius: 8px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102,126,234,0.4); }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-discard { padding: 0.7rem 1.2rem; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #666; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .btn-discard:hover { background: #f5f5f5; }
+
+        /* Action row */
+        .actions-row { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 1.5rem 2rem; }
+        .action-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.3rem; border-radius: 9px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; font-family: inherit; }
+        .btn-edit-addr { background: #eef0ff; color: #667eea; border-color: #c5cef9; }
+        .btn-edit-addr:hover { background: #dde2ff; }
+        .btn-edit-time { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .btn-edit-time:hover { background: #c8e6c9; }
+        .btn-edit-desc { background: #fff8e1; color: #e65100; border-color: #ffcc80; }
+        .btn-edit-desc:hover { background: #ffe0b2; }
+        .btn-cancel-booking { background: #fde8e8; color: #c62828; border-color: #ef9a9a; margin-left: auto; }
+        .btn-cancel-booking:hover { background: #ffcdd2; }
+        .btn-cancel-booking:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Saving indicator */
+        .saving-badge { display: none; background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; border-radius: 20px; padding: 0.2rem 0.8rem; font-size: 0.75rem; font-weight: 700; margin-left: 0.5rem; }
+        .saving-badge.show { display: inline; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; padding: 2rem; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.2s ease; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .modal-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+        .modal-box h3 { color: #333; margin-bottom: 0.5rem; }
+        .modal-box p  { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+        .modal-btns { display: flex; gap: 0.75rem; }
+        .modal-btns button { flex: 1; padding: 0.75rem; border-radius: 8px; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; font-family: inherit; }
+        .btn-confirm-cancel { background: #e53935; color: white; }
+        .btn-confirm-cancel:hover { background: #c62828; }
+        .btn-keep { background: #f0f0f0; color: #333; }
+        .btn-keep:hover { background: #e0e0e0; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px); background: #333; color: white; padding: 0.75rem 1.5rem; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 9999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.success { background: #4caf50; }
+        .toast.error   { background: #e53935; }
+
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; }
+            .section { padding: 1.2rem; }
+            .status-strip, .actions-row { padding: 1.2rem; }
+            .info-grid { grid-template-columns: 1fr; }
+            .btn-cancel-booking { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <div class="top-bar">
+        <button class="back-btn" onclick="window.history.back()">&#8592; Back</button>
+        <h2>&#128203; Booking Details</h2>
+        <span class="db-badge" id="dbBadge" style="display:none;">&#128451;&#65039; DB Connected</span>
+    </div>
+
+    <div class="card" id="mainCard">
+        <div class="loading-wrap" id="loadingWrap">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading booking from database...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel modal -->
+<div class="modal-overlay" id="cancelModal">
+    <div class="modal-box">
+        <div class="modal-icon">&#9888;&#65039;</div>
+        <h3>Cancel Booking?</h3>
+        <p>Are you sure you want to cancel? This action cannot be undone.</p>
+        <div class="modal-btns">
+            <button class="btn-keep" onclick="closeCancelModal()">Keep It</button>
+            <button class="btn-confirm-cancel" onclick="confirmCancel()">Yes, Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    var API_URL    = 'http://localhost:5000/api';
+    var booking    = null;
+    var bookingId  = null;   // DB id
+    var fromDb     = false;
+
+    /* ============================================================
+       PAGE LOAD
+       URL options:
+         ?id=5          → fetch from DB (preferred)
+         ?index=2       → fallback: localStorage myBookings[2]
+    ============================================================ */
+    window.addEventListener('load', async function() {
+        var params = new URLSearchParams(window.location.search);
+        bookingId  = params.get('id');
+        var idx    = params.get('index');
+        var token  = localStorage.getItem('token');
+
+        if (bookingId && token) {
+            // ── Fetch from DB ──
+            try {
+                var res  = await fetch(API_URL + '/booking/' + bookingId, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                var data = await res.json();
+                if (data.success && data.booking) {
+                    booking = data.booking;
+                    fromDb  = true;
+                    renderCard();
+                    showDbBadge(true);
+                    return;
+                }
+            } catch(e) {
+                console.warn('DB fetch failed, trying localStorage');
+            }
+        }
+
+        // ── Fallback: localStorage by index ──
+        var bookings = [];
+        try { bookings = JSON.parse(localStorage.getItem('myBookings') || '[]'); } catch(e) {}
+
+        var i = idx != null ? parseInt(idx) : -1;
+
+        // also try matching by id in localStorage
+        if (bookingId && i === -1) {
+            i = bookings.findIndex(function(b){ return String(b.id) === String(bookingId); });
+        }
+
+        if (i >= 0 && i < bookings.length) {
+            booking = bookings[i];
+            bookingId = booking.id || bookingId;
+            fromDb  = false;
+            renderCard();
+            showDbBadge(false);
+        } else {
+            document.getElementById('mainCard').innerHTML =
+                '<div style="padding:3rem;text-align:center;">' +
+                '<div style="font-size:3rem;margin-bottom:1rem;">&#128203;</div>' +
+                '<h3 style="color:#e53935;margin-bottom:0.75rem;">Booking Not Found</h3>' +
+                '<p style="color:#666;font-size:0.9rem;">URL-ல ?id=5 அல்லது ?index=0 இருக்கணும்</p>' +
+                '<p style="margin-top:1.5rem;"><a href="user-dashboard.html" style="color:#667eea;font-weight:600;">&#8592; My Bookings</a></p>' +
+                '</div>';
+        }
+    });
+
+    function showDbBadge(connected) {
+        var badge = document.getElementById('dbBadge');
+        badge.style.display = 'inline-flex';
+        if (connected) {
+            badge.textContent  = '&#128451;&#65039; DB Connected';
+            badge.className    = 'db-badge';
+        } else {
+            badge.textContent  = '&#128196; Local Data';
+            badge.className    = 'db-badge db-badge-warn';
+        }
+    }
+
+    /* ============================================================
+       RENDER FULL CARD
+    ============================================================ */
+    function renderCard() {
+        // Normalise field names (DB uses snake_case, localStorage uses camelCase)
+        var b = booking;
+        var workerName    = b.worker_name    || b.workerName    || '?';
+        var workerCat     = b.worker_category|| b.workerCategory|| b.service || '—';
+        var status        = b.status         || 'pending';
+        var preferredDate = b.preferred_date || b.preferredDate || b.date || '—';
+        var preferredTime = b.preferred_time || b.preferredTime || '';
+        var urgency       = b.urgency        || 'normal';
+        var custName      = b.customer_name  || b.contactName   || '—';
+        var custPhone     = b.customer_phone || b.contactPhone   || '—';
+        var address       = b.address        || '—';
+        var landmark      = b.landmark       || '';
+        var description   = b.description    || '—';
+        var workerPhone   = b.worker_phone   || '';
+        var workerPhoto   = b.worker_photo   || b.profile_photo || '';
+
+        // Icons
+        var icons  = { pending:'⏳', confirmed:'✅', completed:'🎉', cancelled:'❌' };
+        var stepMap = { pending:1, confirmed:2, completed:4, cancelled:0 };
+        var activeStep = stepMap[status] || 1;
+
+        // Build step HTML
+        var stepsHTML = '';
+        var stepLabels = ['Booked','Confirmed','In Progress','Completed'];
+        for (var i = 1; i <= 4; i++) {
+            var cls = '';
+            var dot = i;
+            if (status === 'cancelled') { cls = ''; }
+            else if (i < activeStep)   { cls = 'done'; dot = '&#10003;'; }
+            else if (i === activeStep) { cls = 'active'; }
+            stepsHTML += '<div class="step ' + cls + '" id="step'+i+'">' +
+                         '<div class="step-dot">' + dot + '</div>' +
+                         '<span class="step-label">' + stepLabels[i-1] + '</span></div>';
+        }
+
+        // Avatar
+        var avatarInner = workerPhoto
+            ? '<span>' + workerName.charAt(0) + '</span><img src="' + workerPhoto + '" alt="">'
+            : workerName.charAt(0);
+        var avatarClass = 'worker-mini-avatar' + (workerPhoto ? ' has-photo' : '');
+
+        // Edit buttons visible only if editable
+        var editable = (status === 'pending' || status === 'confirmed');
+        var editBtnsDisplay = editable ? '' : 'display:none;';
+
+        document.getElementById('mainCard').innerHTML =
+
+            // Status strip
+            '<div class="status-strip ' + status + '" id="statusStrip">' +
+            '<div class="status-left"><h3 id="headerWorkerName">' + esc(workerName) + '</h3>' +
+            '<span style="color:#666;font-size:0.88rem">' + esc(workerCat) + '</span></div>' +
+            '<span class="status-badge badge-' + status + '" id="statusBadge">' + (icons[status]||'') + ' ' + cap(status) + '</span>' +
+            '</div>' +
+
+            // Progress
+            '<div class="progress-track"><div class="steps">' + stepsHTML + '</div></div>' +
+
+            // Worker
+            '<div class="section"><div class="section-title">&#128119; Worker</div>' +
+            '<div class="worker-mini">' +
+            '<div class="' + avatarClass + '" id="workerAvatarEl">' + avatarInner + '</div>' +
+            '<div class="worker-mini-info"><h4>' + esc(workerName) + '</h4>' +
+            '<span>' + esc(workerCat) + '</span>' +
+            (workerPhone ? '<div class="wm-phone">&#128241; ' + esc(workerPhone) + '</div>' : '') +
+            '</div></div></div>' +
+
+            // Booking info
+            '<div class="section"><div class="section-title">&#128196; Booking Info</div>' +
+            '<div class="info-grid">' +
+            '<div class="info-item"><label>Service</label><span id="infoServiceType">' + esc(workerCat) + '</span></div>' +
+            '<div class="info-item"><label>Date</label><span id="infoDate">' + esc(preferredDate) + '</span></div>' +
+            '<div class="info-item"><label>Time</label><span id="infoTime">' + formatTime(preferredTime) + '</span></div>' +
+            '<div class="info-item"><label>Urgency</label><span id="infoUrgency">' + cap(urgency) + '</span></div>' +
+            '<div class="info-item"><label>Contact Name</label><span id="infoContact">' + esc(custName) + '</span></div>' +
+            '<div class="info-item"><label>Phone</label><span id="infoPhone">' + esc(custPhone) + '</span></div>' +
+            '</div></div>' +
+
+            // Address
+            '<div class="section" id="addressSection">' +
+            '<div class="section-title">&#128205; Service Address</div>' +
+            '<p id="infoAddress" style="color:#333;line-height:1.6">' + esc(address) + '</p>' +
+            '<p id="infoLandmark" style="color:#888;font-size:0.88rem;margin-top:0.3rem">' + (landmark ? '&#127991;&#65039; ' + esc(landmark) : '') + '</p>' +
+            '<div class="edit-panel" id="editAddressPanel">' +
+            '<h4>&#9999;&#65039; Change Address</h4>' +
+            '<div class="edit-group"><label>New Service Address *</label><textarea id="newAddress" rows="3" placeholder="Enter complete address..."></textarea></div>' +
+            '<div class="edit-group"><label>Nearby Landmark</label><input type="text" id="newLandmark" placeholder="e.g., Near City Hospital"></div>' +
+            '<div class="edit-actions"><button class="btn-save" onclick="saveAddress()">&#128190; Save Address <span class="saving-badge" id="savingAddr">Saving...</span></button><button class="btn-discard" onclick="togglePanel(\'editAddressPanel\')">Discard</button></div>' +
+            '</div></div>' +
+
+            // Description
+            '<div class="section" id="descSection">' +
+            '<div class="section-title">&#128203; Description</div>' +
+            '<p id="infoDescription" style="color:#333;line-height:1.6">' + esc(description) + '</p>' +
+            '<div class="edit-panel" id="editDescPanel">' +
+            '<h4>&#9999;&#65039; Edit Description</h4>' +
+            '<div class="edit-group"><label>Problem Description *</label><textarea id="newDescription" rows="4" placeholder="Describe your issue..."></textarea></div>' +
+            '<div class="edit-actions"><button class="btn-save" onclick="saveDescription()">&#128190; Save <span class="saving-badge" id="savingDesc">Saving...</span></button><button class="btn-discard" onclick="togglePanel(\'editDescPanel\')">Discard</button></div>' +
+            '</div></div>' +
+
+            // Schedule
+            '<div class="section" id="timeSection">' +
+            '<div class="section-title">&#9200;&#65039; Schedule</div>' +
+            '<p id="scheduleDisplay" style="color:#333;font-size:1rem;font-weight:500">' + esc(preferredDate) + '&nbsp;&nbsp;' + formatTime(preferredTime) + '</p>' +
+            '<div class="edit-panel" id="editTimePanel">' +
+            '<h4>&#9999;&#65039; Change Schedule</h4>' +
+            '<div class="edit-group"><label>Preferred Date *</label><input type="date" id="newDate"></div>' +
+            '<div class="edit-group"><label>Preferred Time *</label>' +
+            '<div class="time-row">' +
+            '<select id="newHour"><option value="">Hour</option>' +
+            [1,2,3,4,5,6,7,8,9,10,11,12].map(function(h){ return '<option value="'+pad(h)+'">'+pad(h)+'</option>'; }).join('') +
+            '</select><span class="time-sep">:</span>' +
+            '<select id="newMinute"><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>' +
+            '<select id="newAmPm" class="ampm-select"><option value="AM">AM</option><option value="PM">PM</option></select>' +
+            '</div></div>' +
+            '<div class="edit-actions"><button class="btn-save" onclick="saveSchedule()">&#128190; Save Schedule <span class="saving-badge" id="savingTime">Saving...</span></button><button class="btn-discard" onclick="togglePanel(\'editTimePanel\')">Discard</button></div>' +
+            '</div></div>' +
+
+            // Actions row
+            '<div class="actions-row" id="actionsRow">' +
+            '<button class="action-btn btn-edit-addr" style="' + editBtnsDisplay + '" onclick="openPanel(\'editAddressPanel\', populateAddress)">&#128205; Change Address</button>' +
+            '<button class="action-btn btn-edit-time" style="' + editBtnsDisplay + '" onclick="openPanel(\'editTimePanel\', populateTime)">&#9200;&#65039; Change Time</button>' +
+            '<button class="action-btn btn-edit-desc" style="' + editBtnsDisplay + '" onclick="openPanel(\'editDescPanel\', populateDesc)">&#128203; Edit Description</button>' +
+            '<button class="action-btn btn-cancel-booking" id="cancelBookingBtn" ' + (!editable?'disabled style="opacity:0.4;"':'') + ' onclick="showCancelModal()">&#10060; Cancel Booking</button>' +
+            '</div>';
+    }
+
+
+    function checkAndShowRatePopup() {
+    var params     = new URLSearchParams(window.location.search);
+    var bookingId  = params.get('id');
+    var fromDs     = params.get('from'); // 'dashboard' ஆ இருந்தா skip
+ 
+    if (!booking || booking.status !== 'completed' || fromDs === 'skip') return;
+    if (!bookingId) return;
+ 
+    // Already reviewed check
+    var token = localStorage.getItem('token');
+    if (!token) return;
+ 
+    fetch('http://localhost:5000/api/reviews/my', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) return;
+            var reviewed = (d.reviews || []).some(function(r) { return String(r.booking_id) === String(bookingId); });
+            if (!reviewed) {
+                // Redirect to reviews page with params
+                setTimeout(function() {
+                    var wn  = encodeURIComponent(booking.worker_name  || '');
+                    var svc = encodeURIComponent(booking.worker_category || '');
+                    var dt  = encodeURIComponent(booking.preferred_date || '');
+                    window.location.href = 'reviews.html?booking_id=' + bookingId +
+                        '&worker_id=' + (booking.worker_id || '') +
+                        '&worker_name=' + wn + '&service=' + svc + '&date=' + dt;
+                }, 1500); // 1.5s delay so user sees status first
+            }
+        })
+        .catch(function() {});
+}
+
+
+    /* ============================================================
+       PANEL HELPERS
+    ============================================================ */
+    function togglePanel(id) { document.getElementById(id).classList.toggle('open'); }
+    function openPanel(id, fn) {
+        document.querySelectorAll('.edit-panel').forEach(function(p){ p.classList.remove('open'); });
+        document.getElementById(id).classList.add('open');
+        if (fn) fn();
+        document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function populateAddress() {
+        document.getElementById('newAddress').value  = booking.address   || booking.address  || '';
+        document.getElementById('newLandmark').value = booking.landmark  || '';
+    }
+    function populateDesc() {
+        document.getElementById('newDescription').value = booking.description || '';
+    }
+    function populateTime() {
+        var today = new Date().toISOString().split('T')[0];
+        var date  = booking.preferred_date || booking.preferredDate || today;
+        document.getElementById('newDate').min   = today;
+        document.getElementById('newDate').value = date;
+        var t = booking.preferred_time || booking.preferredTime || '';
+        if (t) {
+            var parts = t.split(':'); var hr24 = parseInt(parts[0]);
+            var ampm  = hr24 >= 12 ? 'PM' : 'AM';
+            var hr12  = pad(hr24 % 12 || 12);
+            document.getElementById('newHour').value   = hr12;
+            document.getElementById('newMinute').value = parts[1] || '00';
+            document.getElementById('newAmPm').value   = ampm;
+        }
+    }
+
+    /* ============================================================
+       SAVE — tries DB first, falls back to localStorage
+    ============================================================ */
+    async function dbUpdate(payload, savingId) {
+        var badge = document.getElementById(savingId);
+        if (badge) { badge.className = 'saving-badge show'; badge.textContent = 'Saving...'; }
+        var token = localStorage.getItem('token');
+        var saved = false;
+        if (token && fromDb) {
+            try {
+                var res  = await fetch(API_URL + '/booking/update/' + bookingId, {
+                    method:  'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body:    JSON.stringify(payload)
+                });
+                var data = await res.json();
+                if (data.success) saved = true;
+            } catch(e) {}
+        }
+        // Update booking object with new values
+        Object.assign(booking, payload);
+        // Sync to localStorage regardless
+        lsPersist();
+        if (badge) { badge.className = 'saving-badge'; }
+        return saved;
+    }
+
+    async function saveAddress() {
+        var addr = document.getElementById('newAddress').value.trim();
+        if (!addr) { showToast('Address cannot be empty', 'error'); return; }
+        var ok = await dbUpdate({ address: addr, landmark: document.getElementById('newLandmark').value.trim() }, 'savingAddr');
+        togglePanel('editAddressPanel');
+        renderCard();
+        showToast(ok ? '&#128451;&#65039; Address saved to DB!' : '&#128196; Address saved locally', ok ? 'success' : '');
+    }
+
+    async function saveDescription() {
+        var desc = document.getElementById('newDescription').value.trim();
+        if (!desc) { showToast('Description cannot be empty', 'error'); return; }
+        var ok = await dbUpdate({ description: desc }, 'savingDesc');
+        togglePanel('editDescPanel');
+        renderCard();
+        showToast(ok ? '&#128451;&#65039; Description saved to DB!' : '&#128196; Saved locally', ok ? 'success' : '');
+    }
+
+    async function saveSchedule() {
+        var date = document.getElementById('newDate').value;
+        var hour = document.getElementById('newHour').value;
+        var min  = document.getElementById('newMinute').value;
+        var ampm = document.getElementById('newAmPm').value;
+        if (!date || !hour) { showToast('Please fill date and time', 'error'); return; }
+        var hr24 = parseInt(hour);
+        if (ampm === 'PM' && hr24 !== 12) hr24 += 12;
+        if (ampm === 'AM' && hr24 === 12) hr24 = 0;
+        var time24 = pad(hr24) + ':' + min;
+        var ok = await dbUpdate({ preferred_date: date, preferred_time: time24, preferredDate: date, preferredTime: time24, date: date }, 'savingTime');
+        togglePanel('editTimePanel');
+        renderCard();
+        showToast(ok ? '&#128451;&#65039; Schedule saved to DB!' : '&#128196; Saved locally', ok ? 'success' : '');
+    }
+
+    /* ============================================================
+       CANCEL BOOKING
+    ============================================================ */
+    function showCancelModal()  { document.getElementById('cancelModal').classList.add('open'); }
+    function closeCancelModal() { document.getElementById('cancelModal').classList.remove('open'); }
+
+    async function confirmCancel() {
+        var token = localStorage.getItem('token');
+        var ok = false;
+        if (token && fromDb) {
+            try {
+                var res  = await fetch(API_URL + '/booking/cancel/' + bookingId, {
+                    method:  'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+                });
+                var data = await res.json();
+                if (data.success) ok = true;
+            } catch(e) {}
+        }
+        booking.status = 'cancelled';
+        lsPersist();
+        closeCancelModal();
+        showToast(ok ? '&#128451;&#65039; Booking cancelled in DB' : '&#10060; Booking cancelled', 'error');
+        setTimeout(function(){ window.location.href = 'user-dashboard.html'; }, 1600);
+    }
+
+    /* ============================================================
+       localStorage sync (backup)
+    ============================================================ */
+    function lsPersist() {
+        try {
+            var bookings = JSON.parse(localStorage.getItem('myBookings') || '[]');
+            var i = bookings.findIndex(function(b){ return String(b.id) === String(bookingId); });
+            if (i >= 0) { bookings[i] = Object.assign(bookings[i], booking); }
+            else { bookings.unshift(booking); }
+            localStorage.setItem('myBookings', JSON.stringify(bookings));
+        } catch(e) {}
+    }
+
+    /* ============================================================
+       HELPERS
+    ============================================================ */
+    function formatTime(t) {
+        if (!t) return '—';
+        var parts = t.split(':'); var hr = parseInt(parts[0]);
+        var ampm = hr >= 12 ? 'PM' : 'AM'; var hr12 = hr % 12 || 12;
+        return pad(hr12) + ':' + (parts[1]||'00') + ' ' + ampm;
+    }
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function pad(n) { return String(n).padStart(2,'0'); }
+    function esc(v) {
+        return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function showToast(msg, type) {
+        var t = document.getElementById('toast');
+        t.innerHTML  = msg;
+        t.className  = 'toast ' + (type||'') + ' show';
+        setTimeout(function(){ t.classList.remove('show'); }, 3000);
+    }
+</script>
+</body>
+</html>

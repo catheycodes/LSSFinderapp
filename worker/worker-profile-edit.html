@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem; }
+        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+
+        .edit-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.75rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .edit-header h1 { font-size: 1.5rem; }
+        .back-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 0.5rem 1.1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: background 0.2s; }
+        .back-btn:hover { background: rgba(255,255,255,0.35); }
+
+        /* DB badge */
+        .db-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 0.2rem 0.75rem; font-size: 0.75rem; margin-left: 0.75rem; }
+
+        .form-body { padding: 2rem; }
+
+        .alert { padding: 0.85rem 1rem; border-radius: 10px; margin-bottom: 1.5rem; font-weight: 500; display: none; }
+        .alert-success { background: #d4f5e2; color: #1a7a45; border: 1.5px solid #7ddcaa; }
+        .alert-error   { background: #fee; color: #c33; border: 1.5px solid #fcc; }
+
+        .form-section { margin-bottom: 2rem; }
+        .form-section h3 { color: #333; font-size: 1rem; font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f0f0f0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; color: #444; font-weight: 500; font-size: 0.88rem; }
+        .required { color: #dc3545; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.72rem 0.9rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; font-family: inherit; transition: border-color 0.25s; background: #fafafa; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #667eea; background: white; }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+        .help-text { font-size: 0.78rem; color: #888; margin-top: 0.25rem; }
+
+        /* Photo */
+        .photo-upload-wrap { display: flex; align-items: center; gap: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 12px; }
+        .photo-circle { width: 80px; height: 80px; border-radius: 50%; border: 3px dashed #667eea; background: #f0f2ff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; flex-shrink: 0; transition: all 0.3s; }
+        .photo-circle:hover { border-style: solid; background: #e4e8ff; }
+        .photo-circle .ph-icon { font-size: 1.8rem; }
+        .photo-circle .ph-hint { font-size: 0.62rem; color: #888; margin-top: 2px; }
+        .photo-circle img { display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .photo-circle.filled .ph-icon, .photo-circle.filled .ph-hint { display: none; }
+        .photo-circle.filled img { display: block; }
+        #profilePhotoInput { display: none; }
+        .photo-info { font-size: 0.85rem; color: #555; }
+        .photo-info strong { display: block; margin-bottom: 0.3rem; color: #333; }
+        .photo-change-btn { margin-top: 0.4rem; font-size: 0.8rem; color: #667eea; cursor: pointer; text-decoration: underline; background: none; border: none; font-family: inherit; }
+
+        /* Category */
+        .category-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        .category-row select { flex: 1; }
+        .btn-add-cat { width: 44px; min-width: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .btn-add-cat:hover { transform: scale(1.08); }
+
+        /* Price */
+        .price-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center; }
+        .price-sep { color: #667eea; font-weight: 700; text-align: center; font-size: 1.1rem; }
+        .price-field { position: relative; }
+        .price-field .rupee { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #667eea; font-weight: 700; pointer-events: none; }
+        .price-field input { padding-left: 1.8rem !important; }
+
+        /* Days */
+        .days-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 0.4rem; }
+        .day-cb { display: none; }
+        .day-lbl { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.55rem 0.2rem; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; font-size: 0.68rem; font-weight: 600; color: #888; background: #fafafa; transition: all 0.2s; user-select: none; text-align: center; }
+        .day-lbl .ds { font-size: 0.9rem; margin-bottom: 2px; }
+        .day-cb:checked + .day-lbl { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; box-shadow: 0 3px 8px rgba(102,126,234,0.4); transform: translateY(-2px); }
+
+        /* Hours */
+        .hours-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center; }
+        .hrs-sep { color: #667eea; font-weight: 700; text-align: center; }
+
+        /* Skills */
+        .skills-input-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .skills-input-row input { flex: 1; }
+        .add-skill-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0 1.1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1.2rem; transition: all 0.2s; }
+        .skills-wrap { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 32px; }
+        .skill-tag { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.35rem 0.9rem; border-radius: 20px; font-size: 0.82rem; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; }
+        .skill-remove { background: rgba(255,255,255,0.3); border: none; color: white; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
+        .skill-remove:hover { background: rgba(255,255,255,0.55); }
+
+        /* Work images */
+        .work-images-preview { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.6rem; }
+        .work-img-thumb { position: relative; width: 85px; height: 85px; }
+        .work-img-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid #667eea; }
+        .work-img-thumb .del-img { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #dc3545; color: white; border: none; border-radius: 50%; font-size: 0.75rem; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+        /* Actions */
+        .form-actions { display: flex; gap: 1rem; padding-top: 2rem; border-top: 2px solid #f0f0f0; }
+        .btn { flex: 1; padding: 0.9rem; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .btn-cancel { background: #f0f0f0; color: #555; }
+        .btn-cancel:hover { background: #e0e0e0; }
+        .btn-save { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .btn-save:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; padding: 1.75rem 1.5rem; width: 320px; max-width: 92vw; box-shadow: 0 15px 50px rgba(0,0,0,0.25); }
+        .modal-box h4 { color: #333; margin-bottom: 1rem; }
+        .modal-box input { width: 100%; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; margin-bottom: 1rem; font-family: inherit; }
+        .modal-box input:focus { outline: none; border-color: #667eea; }
+        .modal-btns { display: flex; gap: 0.5rem; }
+        .modal-btns button { flex: 1; padding: 0.65rem; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-modal-ok { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-modal-cancel { background: #f0f0f0; color: #555; }
+
+        @media (max-width: 600px) {
+            body { padding: 0.5rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .days-grid { grid-template-columns: repeat(4,1fr); }
+            .form-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="edit-header">
+        <h1>✏️ Edit Worker Profile <span class="db-badge" id="dbBadge">⏳ Loading...</span></h1>
+        <button class="back-btn" onclick="goBack()">← Back</button>
+    </div>
+
+    <div class="form-body">
+        <div id="alertSuccess" class="alert alert-success"></div>
+        <div id="alertError"   class="alert alert-error"></div>
+
+        <form id="editForm" onsubmit="saveProfile(event)">
+
+            <!-- Profile Photo -->
+            <div class="form-section">
+                <h3>📷 Profile Photo</h3>
+                <div class="photo-upload-wrap">
+                    <div class="photo-circle" id="photoCircle" onclick="document.getElementById('profilePhotoInput').click()">
+                        <span class="ph-icon">📷</span>
+                        <span class="ph-hint">Tap</span>
+                        <img id="photoPreview" src="" alt="">
+                    </div>
+                    <div class="photo-info">
+                        <strong>Profile Picture</strong>
+                        Click the circle to upload / change
+                        <button type="button" class="photo-change-btn" onclick="document.getElementById('profilePhotoInput').click()">Change Photo</button>
+                    </div>
+                    <input type="file" id="profilePhotoInput" accept="image/*" onchange="handlePhoto(event)">
+                </div>
+            </div>
+
+            <!-- Personal -->
+            <div class="form-section">
+                <h3>👤 Personal Information</h3>
+                <div class="form-group">
+                    <label>Full Name <span class="required">*</span></label>
+                    <input type="text" id="e_name" placeholder="Full name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phone <span class="required">*</span></label>
+                        <input type="tel" id="e_phone" placeholder="+91 98765 43210" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="e_email" placeholder="email@example.com" readonly style="background:#f0f0f0;color:#999;">
+                        <p class="help-text">Email cannot be changed</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="form-section">
+                <h3>📍 Location</h3>
+                <div class="form-group">
+                    <label>Address <span class="required">*</span></label>
+                    <textarea id="e_address" placeholder="Complete address" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City <span class="required">*</span></label>
+                        <input type="text" id="e_city" placeholder="City" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pincode <span class="required">*</span></label>
+                        <input type="text" id="e_pincode" placeholder="628001" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Availability -->
+            <div class="form-section">
+                <h3>🗓️ Availability</h3>
+                <div class="form-group">
+                    <label>Available Days <span class="required">*</span></label>
+                    <div class="days-grid">
+                        <div><input type="checkbox" class="day-cb" id="e_mon" value="Monday"><label class="day-lbl" for="e_mon"><span class="ds">Mon</span>Monday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_tue" value="Tuesday"><label class="day-lbl" for="e_tue"><span class="ds">Tue</span>Tuesday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_wed" value="Wednesday"><label class="day-lbl" for="e_wed"><span class="ds">Wed</span>Wednesday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_thu" value="Thursday"><label class="day-lbl" for="e_thu"><span class="ds">Thu</span>Thursday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_fri" value="Friday"><label class="day-lbl" for="e_fri"><span class="ds">Fri</span>Friday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_sat" value="Saturday"><label class="day-lbl" for="e_sat"><span class="ds">Sat</span>Saturday</label></div>
+                        <div><input type="checkbox" class="day-cb" id="e_sun" value="Sunday"><label class="day-lbl" for="e_sun"><span class="ds">Sun</span>Sunday</label></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Working Hours <span class="required">*</span></label>
+                    <div class="hours-row">
+                        <input type="time" id="e_startTime" value="08:00" required>
+                        <span class="hrs-sep">→</span>
+                        <input type="time" id="e_endTime" value="18:00" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional -->
+            <div class="form-section">
+                <h3>💼 Professional Details</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Service Category <span class="required">*</span></label>
+                        <div class="category-row">
+                            <select id="e_category" required>
+                                <option value="">Select Category</option>
+                                <option value="Plumber">Plumber</option>
+                                <option value="Electrician">Electrician</option>
+                                <option value="Carpenter">Carpenter</option>
+                                <option value="Painter">Painter</option>
+                                <option value="Tutor">Tutor</option>
+                                <option value="Tailor">Tailor</option>
+                                <option value="Home Cook">Home Cook</option>
+                                <option value="House Cleaner">House Cleaner</option>
+                                <option value="Mechanic">Mechanic</option>
+                                <option value="Gardener">Gardener</option>
+                            </select>
+                            <button type="button" class="btn-add-cat" onclick="openCatModal()">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Years of Experience <span class="required">*</span></label>
+                        <input type="number" id="e_experience" placeholder="Years" min="0" max="50" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Service Price Range (₹) <span class="required">*</span></label>
+                    <div class="price-row">
+                        <div class="price-field"><span class="rupee">₹</span><input type="number" id="e_minPrice" placeholder="Min" min="0" required></div>
+                        <span class="price-sep">—</span>
+                        <div class="price-field"><span class="rupee">₹</span><input type="number" id="e_maxPrice" placeholder="Max" min="0" required></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Skills <span class="required">*</span></label>
+                    <div class="skills-input-row">
+                        <input type="text" id="skillInput" placeholder="Type a skill, press Enter or click +">
+                        <button type="button" class="add-skill-btn" onclick="addSkill()">+</button>
+                    </div>
+                    <div class="skills-wrap" id="skillsWrap"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>About Yourself <span class="required">*</span></label>
+                    <textarea id="e_description" placeholder="Describe your services..." required></textarea>
+                </div>
+            </div>
+
+            <!-- Work Images -->
+            <div class="form-section">
+                <h3>🖼️ Work Images</h3>
+                <div class="form-group">
+                    <label>Add / Replace Work Images</label>
+                    <input type="file" id="workImagesInput" accept="image/*" multiple onchange="handleWorkImages(event)">
+                    <p class="help-text">Uploading new images will replace existing ones in DB</p>
+                    <div class="work-images-preview" id="workImagesPreview"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-cancel" onclick="goBack()">Cancel</button>
+                <button type="submit" class="btn btn-save" id="saveBtn">💾 Save to Database</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="catModal">
+    <div class="modal-box">
+        <h4>➕ Add New Category</h4>
+        <input type="text" id="newCatInput" placeholder="e.g., Welder, AC Technician..." maxlength="50">
+        <div class="modal-btns">
+            <button type="button" class="btn-modal-cancel" onclick="closeCatModal()">Cancel</button>
+            <button type="button" class="btn-modal-ok" onclick="confirmCat()">Add</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:5000/api';
+    let skillsArray   = [];
+    let newWorkImages = [];
+    let newProfilePhoto = '';
+    let existingWorkImages = [];
+
+    /* ================================================
+       LOAD FROM DB ON START
+    ================================================ */
+    window.addEventListener('load', async () => {
+        const token = localStorage.getItem('token');
+        if (!token) { showAlert('error', '❌ Not logged in! Please login first.'); return; }
+
+        try {
+            const res  = await fetch(`${API_URL}/worker/profile`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.success && data.worker) {
+                document.getElementById('dbBadge').textContent = '🗄️ Loaded from DB';
+                populateForm(data.worker);
+            } else {
+                // Fallback to localStorage
+                fallbackToLocal();
+            }
+        } catch(err) {
+            fallbackToLocal();
+            document.getElementById('dbBadge').textContent = '⚠️ Offline mode';
+        }
+    });
+
+    function fallbackToLocal() {
+        let d = {};
+        try { d = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) {}
+        if (d && (d.full_name || d.name)) {
+            populateForm({ ...d, full_name: d.full_name || d.name });
+            showAlert('error', '⚠️ Server offline — showing saved data. Changes may not save to DB.');
+        }
+    }
+
+    function populateForm(d) {
+        // Photo
+        const photo = d.profile_photo || d.profilePhoto || '';
+        if (photo) {
+            document.getElementById('photoPreview').src = photo;
+            document.getElementById('photoCircle').classList.add('filled');
+            newProfilePhoto = photo;
+        }
+
+        // Personal
+        setVal('e_name',    d.full_name || d.name || '');
+        setVal('e_phone',   d.phone     || '');
+        setVal('e_email',   d.email     || '');
+
+        // Location
+        setVal('e_address', d.address   || '');
+        setVal('e_city',    d.city      || '');
+        setVal('e_pincode', d.pincode   || '');
+
+        // Days
+        const days = Array.isArray(d.availability) ? d.availability
+            : (d.availability ? d.availability.split(',') : []);
+        document.querySelectorAll('.day-cb').forEach(cb => { cb.checked = days.includes(cb.value); });
+
+        // Hours
+        if (d.start_time || d.startTime) document.getElementById('e_startTime').value = d.start_time || d.startTime;
+        if (d.end_time   || d.endTime)   document.getElementById('e_endTime').value   = d.end_time   || d.endTime;
+
+        // Category
+        if (d.category) {
+            const sel = document.getElementById('e_category');
+            let found = false;
+            for (let o of sel.options) { if (o.value === d.category) { found = true; break; } }
+            if (!found) sel.add(new Option(d.category, d.category));
+            sel.value = d.category;
+        }
+
+        // Experience & Price
+        setVal('e_experience', d.experience || '');
+        setVal('e_minPrice',   d.min_price  != null ? d.min_price  : (d.minPrice  != null ? d.minPrice  : ''));
+        setVal('e_maxPrice',   d.max_price  != null ? d.max_price  : (d.maxPrice  != null ? d.maxPrice  : ''));
+
+        // Skills
+        const skillsRaw = d.skills || '';
+        skillsArray = skillsRaw ? skillsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+        renderSkills();
+
+        // Description
+        setVal('e_description', d.description || '');
+
+        // Work Images
+        existingWorkImages = d.work_images || d.workImages || [];
+        newWorkImages = [...existingWorkImages];
+        renderWorkImagePreviews(newWorkImages);
+    }
+
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (el && val != null) el.value = val;
+    }
+
+    /* ================================================
+       PHOTO
+    ================================================ */
+    function handlePhoto(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            newProfilePhoto = ev.target.result;
+            document.getElementById('photoPreview').src = newProfilePhoto;
+            document.getElementById('photoCircle').classList.add('filled');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /* ================================================
+       SKILLS
+    ================================================ */
+    function renderSkills() {
+        document.getElementById('skillsWrap').innerHTML = skillsArray.map((s,i) => `
+            <div class="skill-tag">${escHtml(s)}
+                <button type="button" class="skill-remove" onclick="removeSkill(${i})">×</button>
+            </div>`).join('');
+    }
+    function addSkill() {
+        const inp = document.getElementById('skillInput');
+        const val = inp.value.trim();
+        if (!val || skillsArray.includes(val)) { inp.value=''; return; }
+        skillsArray.push(val); renderSkills(); inp.value = '';
+    }
+    function removeSkill(i) { skillsArray.splice(i,1); renderSkills(); }
+    document.getElementById('skillInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
+    });
+
+    /* ================================================
+       WORK IMAGES
+    ================================================ */
+    function handleWorkImages(e) {
+        newWorkImages = [];
+        document.getElementById('workImagesPreview').innerHTML = '';
+        Array.from(e.target.files).forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                newWorkImages[idx] = ev.target.result;
+                renderWorkImagePreviews(newWorkImages.filter(Boolean));
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    function renderWorkImagePreviews(images) {
+        document.getElementById('workImagesPreview').innerHTML = images.map((src, i) => `
+            <div class="work-img-thumb">
+                <img src="${src}" alt="Work ${i+1}">
+                <button type="button" class="del-img" onclick="removeWorkImage(${i})">✕</button>
+            </div>`).join('');
+    }
+    function removeWorkImage(i) { newWorkImages.splice(i,1); renderWorkImagePreviews(newWorkImages); }
+
+    /* ================================================
+       CATEGORY MODAL
+    ================================================ */
+    function openCatModal() {
+        document.getElementById('newCatInput').value = '';
+        document.getElementById('catModal').classList.add('open');
+        setTimeout(() => document.getElementById('newCatInput').focus(), 100);
+    }
+    function closeCatModal() { document.getElementById('catModal').classList.remove('open'); }
+    function confirmCat() {
+        const val = document.getElementById('newCatInput').value.trim();
+        if (!val) return;
+        const sel = document.getElementById('e_category');
+        for (let o of sel.options) { if (o.value.toLowerCase() === val.toLowerCase()) { sel.value = o.value; closeCatModal(); return; } }
+        sel.add(new Option(val, val)); sel.value = val; closeCatModal();
+    }
+    document.getElementById('catModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCatModal(); });
+
+    /* ================================================
+       SAVE TO DB
+    ================================================ */
+    async function saveProfile(e) {
+        e.preventDefault();
+
+        const selectedDays = Array.from(document.querySelectorAll('.day-cb:checked')).map(c => c.value);
+        if (selectedDays.length === 0) { showAlert('error', 'Please select at least one available day!'); return; }
+
+        const minP = parseFloat(document.getElementById('e_minPrice').value);
+        const maxP = parseFloat(document.getElementById('e_maxPrice').value);
+        if (isNaN(minP) || isNaN(maxP)) { showAlert('error', 'Please enter valid price amounts!'); return; }
+        if (minP > maxP) { showAlert('error', 'Minimum price cannot exceed maximum!'); return; }
+        if (skillsArray.length === 0) { showAlert('error', 'Please add at least one skill!'); return; }
+
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true; btn.textContent = '⏳ Saving to DB...';
+
+        const payload = {
+            full_name:    document.getElementById('e_name').value.trim(),
+            phone:        document.getElementById('e_phone').value.trim(),
+            address:      document.getElementById('e_address').value.trim(),
+            city:         document.getElementById('e_city').value.trim(),
+            pincode:      document.getElementById('e_pincode').value.trim(),
+            availability: selectedDays,
+            start_time:   document.getElementById('e_startTime').value,
+            end_time:     document.getElementById('e_endTime').value,
+            category:     document.getElementById('e_category').value,
+            experience:   document.getElementById('e_experience').value,
+            min_price:    minP,
+            max_price:    maxP,
+            skills:       skillsArray.join(', '),
+            description:  document.getElementById('e_description').value.trim(),
+            profile_photo: newProfilePhoto,
+            work_images:  newWorkImages.filter(Boolean)
+        };
+
+        const token = localStorage.getItem('token');
+
+        try {
+            const res  = await fetch(`${API_URL}/worker/update`, {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body:    JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Also update localStorage user
+                const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+                localStorage.setItem('user', JSON.stringify({
+                    ...localUser, ...payload,
+                    full_name: payload.full_name,
+                    name:      payload.full_name
+                }));
+                showAlert('success', '✅ Profile updated in Database successfully!');
+                btn.disabled = false; btn.textContent = '💾 Save to Database';
+                setTimeout(() => { window.location.href = 'worker-createdb.html'; }, 1800);
+            } else {
+                showAlert('error', '❌ ' + (data.message || 'Update failed!'));
+                btn.disabled = false; btn.textContent = '💾 Save to Database';
+            }
+        } catch(err) {
+            showAlert('error', '❌ Cannot connect to server! Make sure backend is running.');
+            btn.disabled = false; btn.textContent = '💾 Save to Database';
+        }
+    }
+
+    /* ================================================
+       HELPERS
+    ================================================ */
+    function showAlert(type, msg) {
+        const sEl = document.getElementById('alertSuccess');
+        const eEl = document.getElementById('alertError');
+        sEl.style.display = 'none'; eEl.style.display = 'none';
+        if (type === 'success') {
+            sEl.textContent = msg; sEl.style.display = 'block';
+        } else {
+            eEl.textContent = msg; eEl.style.display = 'block';
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => { sEl.style.display='none'; eEl.style.display='none'; }, 5000);
+    }
+
+    function goBack() { window.location.href = 'worker-createdb.html'; }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+</body>
+</html>

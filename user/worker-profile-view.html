@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Profile - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem; }
+        .container { max-width: 860px; margin: 0 auto; background: white; border-radius: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.28); overflow: hidden; }
+        .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 2rem; gap: 1rem; }
+        .spinner { width: 52px; height: 52px; border: 5px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #667eea; font-weight: 600; }
+        .profile-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .header-topbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem 0; }
+        .back-btn { background: rgba(255,255,255,0.18); color: white; border: none; padding: 0.45rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; font-family: inherit; transition: background 0.2s; }
+        .back-btn:hover { background: rgba(255,255,255,0.32); }
+        .db-source { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 0.25rem 0.85rem; font-size: 0.75rem; }
+        .header-hero { padding: 1.5rem 2rem 2.25rem; display: flex; align-items: center; gap: 1.75rem; }
+        .avatar-wrap { position: relative; flex-shrink: 0; }
+        .avatar-circle { width: 100px; height: 100px; border-radius: 50%; background: white; color: #667eea; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; font-weight: 700; box-shadow: 0 6px 24px rgba(0,0,0,0.2); border: 3.5px solid rgba(255,255,255,0.7); overflow: hidden; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .avatar-circle.has-photo span { display: none; }
+        .avatar-circle.has-photo img  { display: block; }
+        .online-dot { position: absolute; bottom: 4px; right: 4px; width: 16px; height: 16px; background: #4caf50; border-radius: 50%; border: 2.5px solid white; }
+        .hero-info { flex: 1; }
+        .hero-info h1 { font-size: 1.7rem; margin-bottom: 0.25rem; }
+        .category-pill { display: inline-block; background: rgba(255,255,255,0.22); border-radius: 20px; padding: 0.25rem 0.9rem; font-size: 0.88rem; margin-bottom: 0.5rem; }
+
+        /* Rating in header */
+        .header-rating { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; flex-wrap: wrap; }
+        .hdr-stars { font-size: 18px; letter-spacing: 2px; }
+        .hdr-avg { font-size: 1.05rem; font-weight: 700; }
+        .hdr-cnt { font-size: 12px; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 2px 10px; }
+        .hdr-no-rv { font-size: 12px; opacity: .7; }
+
+        .meta { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.85rem; opacity: 0.9; }
+        .meta span { display: flex; align-items: center; gap: 0.3rem; }
+        .joined-info { margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.8; }
+        .stats-strip { display: flex; justify-content: space-around; background: rgba(0,0,0,0.12); padding: 1rem 2rem; flex-wrap: wrap; gap: 0.5rem; }
+        .strip-stat { text-align: center; }
+        .strip-stat .sv { font-size: 1.3rem; font-weight: 700; }
+        .strip-stat .sl { font-size: 0.72rem; opacity: 0.82; margin-top: 2px; }
+        .profile-body { padding: 2rem; }
+        .section { margin-bottom: 1.75rem; padding-bottom: 1.75rem; border-bottom: 1px solid #f0f0f0; }
+        .section:last-of-type { border-bottom: none; margin-bottom: 0; }
+        .section-title { font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 1rem; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 0.7rem; }
+        .info-card { background: #f8f9fa; border-radius: 10px; padding: 0.8rem 1rem; border-left: 3px solid #667eea; }
+        .info-card .lbl { font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem; }
+        .info-card .val { font-size: 0.92rem; font-weight: 600; color: #333; word-break: break-word; }
+        .skills-wrap { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .skill-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 500; }
+        .price-display { display: flex; align-items: center; gap: 1.5rem; background: linear-gradient(135deg, #667eea12, #764ba212); border: 2px solid #667eea44; border-radius: 12px; padding: 1rem 1.5rem; flex-wrap: wrap; }
+        .price-item .p-label { font-size: 0.72rem; color: #667eea; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0.2rem; }
+        .price-item .p-val { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .price-sep { color: #ccc; font-size: 1.4rem; }
+        .desc-box { background: #f8f9fa; border-radius: 10px; padding: 1rem 1.1rem; color: #555; line-height: 1.8; font-size: 0.92rem; }
+        .days-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .day-chip { padding: 0.38rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; }
+        .day-chip.on  { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .day-chip.off { background: #f0f0f0; color: #ccc; text-decoration: line-through; }
+        .hours-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 0.7rem; }
+        .img-wrap { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 1; cursor: pointer; border: 2px solid #e8e8e8; transition: transform 0.2s; }
+        .img-wrap:hover { transform: scale(1.04); box-shadow: 0 6px 20px rgba(102,126,234,0.3); }
+        .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .img-overlay { position: absolute; inset: 0; background: rgba(102,126,234,0.55); color: white; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .img-wrap:hover .img-overlay { opacity: 1; }
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; padding: 2rem; }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 85vh; border-radius: 12px; }
+        .lb-close { position: absolute; top: 1rem; right: 1.5rem; color: white; font-size: 2rem; cursor: pointer; }
+
+        /* ── REVIEWS SECTION ── */
+        .rv-summary-box { background: #fffbeb; border: 2px solid #fde68a; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
+        .rvs-big { text-align: center; }
+        .rvs-num { font-size: 3rem; font-weight: 800; line-height: 1; color: #1a1523; }
+        .rvs-stars { font-size: 20px; display: block; margin: 4px 0; }
+        .rvs-total { font-size: 12px; color: #888; }
+        .rvs-bars { flex: 1; min-width: 150px; }
+        .rvs-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+        .rvs-bar-num { font-size: 11.5px; color: #666; width: 8px; }
+        .rvs-bar-track { flex: 1; height: 7px; background: #fde68a; border-radius: 4px; overflow: hidden; }
+        .rvs-bar-fill { height: 100%; background: #f59e0b; border-radius: 4px; transition: width .6s ease; }
+        .rvs-bar-cnt { font-size: 11px; color: #999; width: 20px; }
+
+        .rv-card { background: #f8f9fa; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.85rem; border-left: 3px solid #f59e0b; }
+        .rvc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; flex-wrap: wrap; }
+        .rvc-customer { display: flex; align-items: center; gap: .65rem; }
+        .rvc-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+        .rvc-name { font-size: 13.5px; font-weight: 700; color: #333; }
+        .rvc-date { font-size: 11px; color: #999; margin-top: 1px; }
+        .rvc-stars { font-size: 15px; }
+        .rvc-comment { font-size: 13.5px; color: #555; line-height: 1.7; font-style: italic; margin-top: .5rem; background: white; border-radius: 6px; padding: .5rem .75rem; }
+        .rv-empty { text-align: center; padding: 2rem; color: #aaa; font-size: 13.5px; }
+
+        .book-section { background: linear-gradient(135deg, #667eea08, #764ba208); border: 2px solid #667eea33; border-radius: 16px; padding: 1.5rem; text-align: center; }
+        .book-section h3 { color: #333; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .book-section p  { color: #666; font-size: 0.88rem; margin-bottom: 1.25rem; }
+        .book-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .book-btn { padding: 0.85rem 2rem; border-radius: 25px; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; font-family: inherit; text-decoration: none; transition: all 0.25s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .book-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .book-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 18px rgba(102,126,234,0.45); }
+        .book-btn-call { background: #e8f5e9; color: #2e7d32; border: 2px solid #a5d6a7; }
+        .book-btn-call:hover { background: #c8e6c9; }
+        .action-btns { display: flex; gap: 1rem; margin-top: 1rem; }
+        .abtn { flex: 1; padding: 0.85rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; text-align: center; text-decoration: none; display: block; transition: all 0.25s; }
+        .abtn-secondary { background: #f0f0f0; color: #555; }
+        .abtn-secondary:hover { background: #e4e4e4; }
+        .error-box { text-align: center; padding: 4rem 2rem; }
+        .error-box .err-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .error-box h3 { color: #e53935; margin-bottom: 0.75rem; font-size: 1.2rem; }
+        .error-box p  { color: #666; font-size: 0.9rem; line-height: 1.7; }
+        @media (max-width: 600px) { body { padding: 0; } .container { border-radius: 0; } .header-hero { flex-direction: column; text-align: center; } .meta { justify-content: center; } .book-btns, .action-btns { flex-direction: column; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="loadingWrap" class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading worker profile...</div>
+    </div>
+    <div id="profileWrap" style="display:none;">
+        <div class="profile-header">
+            <div class="header-topbar">
+                <button class="back-btn" onclick="window.history.back()">&#8592; Back</button>
+                <span class="db-source" id="dbSourceBadge">&#8987; Loading...</span>
+            </div>
+            <div class="header-hero">
+                <div class="avatar-wrap">
+                    <div class="avatar-circle" id="avatarCircle">
+                        <span id="avatarInitial">W</span>
+                        <img id="avatarPhoto" src="" alt="">
+                    </div>
+                    <div class="online-dot"></div>
+                </div>
+                <div class="hero-info">
+                    <h1 id="heroName">Worker Name</h1>
+                    <div class="category-pill" id="heroCat">Category</div>
+                    <div class="header-rating" id="headerRating"></div>
+                    <div class="meta">
+                        <span id="heroCity">&#128205; City</span>
+                        <span id="heroExp">&#127942; 0 yrs exp</span>
+                        <span id="heroPhone">&#128241; —</span>
+                    </div>
+                    <div class="joined-info" id="joinedInfo"></div>
+                </div>
+            </div>
+            <div class="stats-strip">
+                <div class="strip-stat"><div class="sv" id="stExp">0</div><div class="sl">Yrs Exp</div></div>
+                <div class="strip-stat"><div class="sv" id="stDays">0</div><div class="sl">Days Avail</div></div>
+                <div class="strip-stat"><div class="sv" id="stSkills">0</div><div class="sl">Skills</div></div>
+                <div class="strip-stat"><div class="sv" id="stMinPrice">&#8377;—</div><div class="sl">Min Price</div></div>
+                <div class="strip-stat"><div class="sv" id="stRating">—</div><div class="sl">Avg Rating</div></div>
+            </div>
+        </div>
+        <div class="profile-body" id="profileBody"></div>
+    </div>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <span class="lb-close">&#10005;</span>
+    <img id="lbImg" src="" alt="">
+</div>
+<script>
+    var API_URL  = 'http://localhost:5000/api';
+    var ALL_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    var COLORS   = ['#667eea','#e91e63','#00bcd4','#ff9800','#4caf50','#9c27b0'];
+    var _imgs    = [];
+
+    function fmtTime(t){ if(!t)return''; var p=t.split(':'),h=parseInt(p[0]),m=parseInt(p[1]); return (h%12||12)+':'+(m<10?'0':'')+m+' '+(h>=12?'PM':'AM'); }
+    function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function colFor(n){ var i=0;for(var c of(n||''))i+=c.charCodeAt(0);return COLORS[i%COLORS.length]; }
+    function ini(n){ return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+    function renderStars(r,sz){ var s='';for(var i=1;i<=5;i++) s+=`<span style="font-size:${sz||14}px;color:${i<=Math.round(r)?'#f59e0b':'#ddd'}">${i<=Math.round(r)?'★':'☆'}</span>`;return s; }
+    function openLightbox(i){ document.getElementById('lbImg').src=_imgs[i]; document.getElementById('lightbox').classList.add('open'); }
+    function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape')closeLightbox(); });
+
+    window.addEventListener('load', async function() {
+        var workerId = new URLSearchParams(window.location.search).get('id');
+        if (!workerId) { showError('No worker ID!','?id=1 URL-ல இருக்கணும்.'); return; }
+        try {
+            // Fetch worker + reviews in parallel
+            var [wRes, rvRes] = await Promise.all([
+                fetch(API_URL+'/worker/view/'+workerId),
+                fetch(API_URL+'/reviews/worker/'+workerId)
+            ]);
+            var [wData, rvData] = await Promise.all([wRes.json(), rvRes.json()]);
+            document.getElementById('loadingWrap').style.display = 'none';
+            document.getElementById('profileWrap').style.display = 'block';
+            if (wData.success && wData.worker) {
+                var badge = document.getElementById('dbSourceBadge');
+                badge.innerHTML = '&#128451;&#65039; Loaded from Database';
+                badge.style.background = 'rgba(76,175,80,0.2)';
+                badge.style.borderColor = 'rgba(76,175,80,0.5)';
+                renderProfile(wData.worker, rvData.success ? rvData : {reviews:[],avg_rating:null,total:0});
+            } else {
+                showError('Worker not found!', 'ID '+workerId+' DB-ல இல்ல.');
+            }
+        } catch(err) {
+            document.getElementById('loadingWrap').style.display = 'none';
+            document.getElementById('profileWrap').style.display = 'block';
+            showError('Server not connected!','node server.js running-ஆ check பண்ணு.');
+        }
+    });
+
+    function showError(title,msg){
+        document.getElementById('profileWrap').innerHTML =
+            '<div class="error-box"><div class="err-icon">&#9888;&#65039;</div><h3>'+title+'</h3><p>'+msg+'</p>'+
+            '<p style="margin-top:1.5rem"><a href="javascript:history.back()" style="color:#667eea;font-weight:600">&#8592; Go Back</a></p></div>';
+    }
+
+    function renderProfile(d, rv) {
+        var name = d.full_name || d.name || 'Worker';
+
+        // Avatar
+        document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+        var photo = d.profile_photo || '';
+        if (photo) { document.getElementById('avatarPhoto').src=photo; document.getElementById('avatarCircle').classList.add('has-photo'); }
+
+        document.getElementById('heroName').textContent = name;
+        document.getElementById('heroCat').innerHTML   = '&#128295; '+esc(d.category||'Professional');
+        document.getElementById('heroCity').innerHTML  = '&#128205; '+esc(d.city||'—');
+        document.getElementById('heroExp').innerHTML   = '&#127942; '+esc(d.experience||'0')+' yrs exp';
+        document.getElementById('heroPhone').innerHTML = '&#128241; '+esc(d.phone||'—');
+
+        if (d.created_at) {
+            var fmt = new Date(d.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+            document.getElementById('joinedInfo').innerHTML = '&#128197; Member since '+fmt+' &bull; Worker ID #'+d.id;
+        }
+
+        // Header rating
+        var avgRating = rv.avg_rating || d.avg_rating;
+        var totalRv   = rv.total || d.total_reviews || 0;
+        var ratingHtml = '';
+        if (avgRating && totalRv > 0) {
+            ratingHtml = '<span class="hdr-stars">'+renderStars(avgRating,18)+'</span>'+
+                         '<span class="hdr-avg">'+parseFloat(avgRating).toFixed(1)+'</span>'+
+                         '<span class="hdr-cnt">'+totalRv+' review'+(totalRv!==1?'s':'')+'</span>';
+        } else {
+            ratingHtml = '<span class="hdr-no-rv">No reviews yet</span>';
+        }
+        document.getElementById('headerRating').innerHTML = ratingHtml;
+
+        var skillsList = d.skills ? d.skills.split(',').map(s=>s.trim()).filter(Boolean) : [];
+        var availDays  = Array.isArray(d.availability) ? d.availability : (d.availability ? d.availability.split(',') : []);
+        _imgs = d.work_images || [];
+        var minP = d.min_price, maxP = d.max_price;
+        var st = d.start_time||'', et = d.end_time||'';
+        var workingHours = (st&&et) ? fmtTime(st)+' – '+fmtTime(et) : 'Not set';
+
+        document.getElementById('stExp').textContent    = d.experience||'0';
+        document.getElementById('stDays').textContent   = availDays.length;
+        document.getElementById('stSkills').textContent = skillsList.length;
+        document.getElementById('stMinPrice').innerHTML = minP!=null ? '&#8377;'+Number(minP).toLocaleString('en-IN') : '&#8377;—';
+        document.getElementById('stRating').textContent = (avgRating&&totalRv>0) ? parseFloat(avgRating).toFixed(1)+'★' : '—';
+
+        var priceHTML = (minP!=null&&maxP!=null)
+            ? '<div class="price-display">'+
+              '<div class="price-item"><div class="p-label">Min Charge</div><div class="p-val">&#8377;'+Number(minP).toLocaleString('en-IN')+'</div></div>'+
+              '<span class="price-sep">—</span>'+
+              '<div class="price-item"><div class="p-label">Max Charge</div><div class="p-val">&#8377;'+Number(maxP).toLocaleString('en-IN')+'</div></div>'+
+              '</div>'
+            : '<span style="color:#aaa">No price set.</span>';
+
+        var skillsHTML = skillsList.length
+            ? skillsList.map(s=>'<span class="skill-badge">'+esc(s)+'</span>').join('')
+            : '<span style="color:#aaa;font-size:.85rem">No skills listed.</span>';
+
+        var daysHTML = ALL_DAYS.map(day=>'<span class="day-chip '+(availDays.includes(day)?'on':'off')+'">'+day+'</span>').join('');
+
+        var imagesHTML = _imgs.length
+            ? '<div class="images-grid">'+_imgs.map((src,i)=>'<div class="img-wrap" onclick="openLightbox('+i+')"><img src="'+src+'" alt="Work '+(i+1)+'"><div class="img-overlay">&#128269;</div></div>').join('')+'</div>'
+            : '<span style="color:#aaa;font-size:.9rem">No work images.</span>';
+
+        // ── BUILD REVIEWS HTML ──
+        var reviews = rv.reviews || [];
+        var reviewsHTML = '';
+
+        if (avgRating && totalRv > 0) {
+            var dist = {1:0,2:0,3:0,4:0,5:0};
+            reviews.forEach(r => dist[r.rating]=(dist[r.rating]||0)+1);
+            var barsHtml = [5,4,3,2,1].map(n => {
+                var pct = Math.round((dist[n]/totalRv)*100);
+                return '<div class="rvs-bar-row">'+
+                    '<span class="rvs-bar-num">'+n+'</span>'+
+                    '<div class="rvs-bar-track"><div class="rvs-bar-fill" style="width:'+pct+'%"></div></div>'+
+                    '<span class="rvs-bar-cnt">'+dist[n]+'</span></div>';
+            }).join('');
+
+            reviewsHTML += '<div class="rv-summary-box">'+
+                '<div class="rvs-big">'+
+                    '<div class="rvs-num">'+parseFloat(avgRating).toFixed(1)+'</div>'+
+                    '<span class="rvs-stars">'+renderStars(avgRating,20)+'</span>'+
+                    '<div class="rvs-total">'+totalRv+' review'+(totalRv!==1?'s':'')+'</div>'+
+                '</div>'+
+                '<div class="rvs-bars">'+barsHtml+'</div>'+
+            '</div>';
+        }
+
+        if (reviews.length > 0) {
+            reviewsHTML += reviews.map(r => {
+                var c = colFor(r.customer_name||'C');
+                return '<div class="rv-card">'+
+                    '<div class="rvc-top">'+
+                        '<div class="rvc-customer">'+
+                            '<div class="rvc-av" style="background:'+c+'">'+ini(r.customer_name||'C')+'</div>'+
+                            '<div>'+
+                                '<div class="rvc-name">'+esc(r.customer_name||'Customer')+'</div>'+
+                                '<div class="rvc-date">'+new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'</div>'+
+                            '</div>'+
+                        '</div>'+
+                        '<span class="rvc-stars">'+renderStars(r.rating,15)+'</span>'+
+                    '</div>'+
+                    (r.comment ? '<div class="rvc-comment">"'+esc(r.comment)+'"</div>' : '')+
+                '</div>';
+            }).join('');
+        } else {
+            reviewsHTML += '<div class="rv-empty">No reviews yet — be the first to review this worker!</div>';
+        }
+
+        // Book section
+        var currentUser = {};
+        try { currentUser = JSON.parse(localStorage.getItem('user')||'{}'); } catch(e) {}
+        var isCustomer = currentUser.role === 'customer';
+        var token      = localStorage.getItem('token');
+        var phoneNum   = (d.phone||'').replace(/\s+/g,'');
+
+        var bookSection = isCustomer && token
+            ? '<div class="book-section"><h3>&#128588; Book This Worker</h3><p>Contact '+esc(name)+' directly or book through our platform</p>'+
+              '<div class="book-btns">'+
+              '<a href="../user/booking-page.html?worker_id='+d.id+'" class="book-btn book-btn-primary">&#128197; Book Now</a>'+
+              (phoneNum?'<a href="tel:'+phoneNum+'" class="book-btn book-btn-call">&#128222; Call '+esc(d.phone)+'</a>':'')+
+              '</div></div>'
+            : '<div class="book-section"><h3>&#128588; Want to hire '+esc(name)+'?</h3><p>Login as a customer to book this worker</p>'+
+              '<div class="book-btns"><a href="../login.html" class="book-btn book-btn-primary">&#128274; Login to Book</a></div></div>';
+
+        document.getElementById('profileBody').innerHTML =
+            '<div class="section"><div class="section-title">&#128205; Location</div>'+
+            '<div class="info-grid">'+
+            '<div class="info-card"><div class="lbl">City</div><div class="val">'+esc(d.city||'—')+'</div></div>'+
+            '<div class="info-card"><div class="lbl">Pincode</div><div class="val">'+esc(d.pincode||'—')+'</div></div>'+
+            '</div></div>'+
+
+            '<div class="section"><div class="section-title">&#128188; Professional Details</div>'+
+            '<div class="info-grid" style="margin-bottom:1rem">'+
+            '<div class="info-card"><div class="lbl">Category</div><div class="val">'+esc(d.category||'—')+'</div></div>'+
+            '<div class="info-card"><div class="lbl">Experience</div><div class="val">'+esc(d.experience||'0')+' years</div></div>'+
+            '</div>'+
+            '<div class="section-title" style="font-size:.85rem;margin-bottom:.5rem">&#128736;&#65039; Skills</div>'+
+            '<div class="skills-wrap">'+skillsHTML+'</div></div>'+
+
+            '<div class="section"><div class="section-title">&#128176; Service Price Range</div>'+priceHTML+'</div>'+
+
+            '<div class="section"><div class="section-title">&#128203; About</div>'+
+            '<div class="desc-box">'+esc(d.description||'No description provided.')+'</div></div>'+
+
+            '<div class="section"><div class="section-title">&#128197; Availability</div>'+
+            '<div class="days-row">'+daysHTML+'</div>'+
+            '<div class="hours-badge">&#128336; '+esc(workingHours)+'</div></div>'+
+
+            '<div class="section"><div class="section-title">&#128444;&#65039; Work Images</div>'+imagesHTML+'</div>'+
+
+            // ── REVIEWS SECTION ──
+            '<div class="section"><div class="section-title">&#11088; Ratings &amp; Reviews</div>'+reviewsHTML+'</div>'+
+
+            '<div class="section">'+bookSection+
+            '<div class="action-btns">'+
+            '<a class="abtn abtn-secondary" href="javascript:history.back()">&#8592; Back to List</a>'+
+            '</div></div>';
+    }
+</script>
+</body>
+</html>

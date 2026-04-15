@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Local Skill Finder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root{--bg:#0f0f13;--surface:#16161d;--surface2:#1e1e28;--surface3:#262634;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--accent:#7c6af7;--accent2:#a78bfa;--accent-glow:rgba(124,106,247,0.18);--green:#34d399;--green-bg:rgba(52,211,153,0.1);--red:#f87171;--red-bg:rgba(248,113,113,0.1);--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--blue:#60a5fa;--blue-bg:rgba(96,165,250,0.1);--text:#e8e8f0;--text2:#9090a8;--text3:#5a5a72;--radius:12px;--radius-sm:8px;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+  .login-screen{display:flex;align-items:center;justify-content:center;width:100%;min-height:100vh;padding:2rem;}
+  .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:2.5rem;width:360px;}
+  .login-logo{display:flex;align-items:center;gap:.75rem;margin-bottom:2rem;}
+  .login-logo-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .login-logo-text{font-size:16px;font-weight:600;}
+  .login-logo-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+  .login-title{font-size:20px;font-weight:600;margin-bottom:.4rem;}
+  .login-sub{font-size:13px;color:var(--text2);margin-bottom:1.75rem;line-height:1.5;}
+  .field-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+  .field-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;transition:border-color .15s;margin-bottom:1rem;}
+  .field-input:focus{border-color:var(--accent);}
+  .login-btn{width:100%;padding:10px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s;margin-top:.25rem;}
+  .login-btn:hover{opacity:.88;}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .login-error{background:var(--red-bg);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:9px 12px;font-size:12.5px;color:var(--red);margin-bottom:1rem;display:none;}
+  .login-hint{font-size:11.5px;color:var(--text3);text-align:center;margin-top:1rem;font-family:'DM Mono',monospace;}
+  .sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+  .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid var(--border);}
+  .logo-mark{display:flex;align-items:center;gap:.6rem;}
+  .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .logo-text{font-size:13px;font-weight:600;}
+  .logo-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.04em;}
+  .sidebar-nav{padding:.75rem;flex:1;}
+  .nav-section-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:.5rem .5rem .4rem;margin-top:.5rem;}
+  .nav-item{display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;font-size:13.5px;color:var(--text2);font-weight:400;margin-bottom:2px;border:1px solid transparent;}
+  .nav-item:hover{background:var(--surface2);color:var(--text);}
+  .nav-item.active{background:var(--accent-glow);color:var(--accent2);border-color:rgba(124,106,247,.2);font-weight:500;}
+  .nav-item .ni{font-size:15px;width:18px;text-align:center;}
+  .nav-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;font-family:'DM Mono',monospace;}
+  .sidebar-footer{padding:1rem .75rem;border-top:1px solid var(--border);}
+  .admin-pill{display:flex;align-items:center;gap:.6rem;background:var(--surface2);border-radius:var(--radius-sm);padding:.5rem .75rem;}
+  .admin-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;}
+  .admin-name{font-size:12.5px;font-weight:500;}
+  .admin-role{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;}
+  .logout-btn{margin-left:auto;font-size:14px;color:var(--text3);cursor:pointer;}
+  .main{flex:1;overflow-y:auto;background:var(--bg);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.75rem;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:50;}
+  .topbar-left h2{font-size:17px;font-weight:600;}
+  .topbar-left p{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px;}
+  .topbar-right{display:flex;align-items:center;gap:.75rem;}
+  .icon-btn{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .15s;}
+  .icon-btn:hover{background:var(--surface2);}
+  .db-status{display:flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-size:11.5px;font-family:'DM Mono',monospace;border:1px solid;}
+  .db-status.ok{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25);color:var(--green);}
+  .db-status.err{background:var(--red-bg);border-color:rgba(248,113,113,.25);color:var(--red);}
+  .db-dot{width:6px;height:6px;border-radius:50%;}
+  .db-status.ok .db-dot{background:var(--green);animation:pulse 2s infinite;}
+  .db-status.err .db-dot{background:var(--red);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .page-content{padding:1.5rem 1.75rem;}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem;position:relative;overflow:hidden;transition:border-color .2s;}
+  .stat-card:hover{border-color:var(--border2);}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--radius) var(--radius) 0 0;}
+  .stat-card.purple::before{background:var(--accent);}
+  .stat-card.green::before{background:var(--green);}
+  .stat-card.amber::before{background:var(--amber);}
+  .stat-card.red::before{background:var(--red);}
+  .stat-label{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem;}
+  .stat-value{font-size:28px;font-weight:600;letter-spacing:-.02em;margin-bottom:.4rem;}
+  .stat-sub{font-size:11.5px;color:var(--text3);}
+  .stat-icon{position:absolute;top:1rem;right:1rem;font-size:22px;opacity:.25;}
+  .section-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.25rem;overflow:hidden;}
+  .section-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.5rem;}
+  .section-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:.5rem;}
+  .section-count{font-size:11px;font-family:'DM Mono',monospace;background:var(--surface3);color:var(--text2);padding:2px 8px;border-radius:20px;border:1px solid var(--border);}
+  .section-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .filter-btn{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+  .filter-btn:hover{background:var(--surface2);color:var(--text);}
+  .filter-btn.active{background:var(--accent-glow);color:var(--accent2);border-color:rgba(124,106,247,.25);}
+  .search-wrap{position:relative;}
+  .search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3);pointer-events:none;}
+  .search-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px 5px 28px;font-size:12.5px;color:var(--text);font-family:'DM Sans',sans-serif;width:180px;outline:none;}
+  .search-input:focus{border-color:var(--accent);}
+  table{width:100%;border-collapse:collapse;}
+  th{font-size:11px;font-family:'DM Mono',monospace;font-weight:500;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:.6rem 1.25rem;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);}
+  td{padding:.8rem 1.25rem;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .user-cell{display:flex;align-items:center;gap:.65rem;}
+  .user-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:1.5px solid rgba(255,255,255,.08);}
+  .user-name{font-size:13px;font-weight:500;}
+  .user-email{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;}
+  .badge-dot{width:5px;height:5px;border-radius:50%;}
+  .badge.pending{background:var(--amber-bg);color:var(--amber);}
+  .badge.approved{background:var(--green-bg);color:var(--green);}
+  .badge.rejected{background:var(--red-bg);color:var(--red);}
+  .badge.confirmed{background:var(--blue-bg);color:var(--blue);}
+  .badge.completed{background:rgba(124,106,247,.12);color:var(--accent2);}
+  .badge.cancelled{background:var(--red-bg);color:var(--red);}
+  .badge.active2{background:var(--green-bg);color:var(--green);}
+  .badge.blocked{background:var(--red-bg);color:var(--red);}
+  .action-btns{display:flex;gap:5px;flex-wrap:wrap;}
+  .act-btn{padding:4px 10px;border-radius:5px;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;border:1px solid transparent;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:3px;}
+  .act-approve{background:var(--green-bg);color:var(--green);border-color:rgba(52,211,153,.2);}
+  .act-approve:hover{background:rgba(52,211,153,.2);}
+  .act-reject{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.2);}
+  .act-reject:hover{background:rgba(248,113,113,.2);}
+  .act-view{background:var(--accent-glow);color:var(--accent2);border-color:rgba(124,106,247,.2);}
+  .act-view:hover{background:rgba(124,106,247,.25);}
+  .act-block{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.2);}
+  .act-unblock{background:var(--green-bg);color:var(--green);border-color:rgba(52,211,153,.2);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;}
+  .booking-row{display:flex;align-items:center;gap:.75rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--border);}
+  .booking-row:hover{background:rgba(255,255,255,.02);}
+  .booking-row:last-child{border-bottom:none;}
+  .bk-left{flex:1;}
+  .bk-names{font-size:13px;font-weight:500;}
+  .bk-names span{color:var(--text3);font-weight:400;}
+  .bk-meta{font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace;}
+  .bk-right{text-align:right;}
+  .bk-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:3px;}
+  .chart-wrap{padding:1.25rem;}
+  .bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s ease;}
+  .bar-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;}
+  .bar-val{font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;}
+  .activity-item{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);}
+  .activity-item:last-child{border-bottom:none;}
+  .act-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px;}
+  .act-text{font-size:13px;flex:1;line-height:1.45;}
+  .act-text strong{color:var(--text);font-weight:500;}
+  .act-time-label{font-size:10.5px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;}
+  .empty{text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner-inline{display:inline-block;width:14px;height:14px;border:2px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:.75rem 1.1rem;font-size:13px;display:flex;align-items:center;gap:.5rem;opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;z-index:999;max-width:320px;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.success{border-color:rgba(52,211,153,.3);}
+  .toast.error{border-color:rgba(248,113,113,.3);}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:1.5rem;width:380px;max-width:90vw;}
+  .modal-title{font-size:15px;font-weight:600;margin-bottom:.5rem;}
+  .modal-desc{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.55;}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+  .mbtn{padding:7px 16px;border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;border:1px solid transparent;}
+  .mbtn-cancel{background:var(--surface3);color:var(--text2);border-color:var(--border);}
+  .mbtn-confirm{background:var(--accent);color:white;}
+  .mbtn-danger{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.25);}
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:10px;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .fade-in{animation:fadeIn .3s ease both;}
+  @media(max-width:1100px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr;}}
+  @media(max-width:720px){.sidebar{display:none;}.stats-row{grid-template-columns:1fr 1fr;}.page-content{padding:1rem;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🔧</div>
+      <div><div class="login-logo-text">Local Skill Finder</div><div class="login-logo-sub">admin panel</div></div>
+    </div>
+    <div class="login-title">Sign in to Admin</div>
+    <div class="login-sub">Only authorised administrators can access this panel.</div>
+    <div id="loginError" class="login-error"></div>
+    <div class="field-label">Email</div>
+    <input class="field-input" type="email" id="loginEmail" placeholder="admin@localskill.com">
+    <div class="field-label">Password</div>
+    <input class="field-input" type="password" id="loginPassword" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+    <div class="login-hint">default: admin@localskill.com / admin123</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardScreen" style="display:none;width:100%;flex-direction:row;">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">🔧</div>
+        <div><div class="logo-text">Skill Finder</div><div class="logo-sub">admin panel</div></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="switchTab('dashboard',this)"><span class="ni">⊞</span> Dashboard</div>
+      <div class="nav-item" onclick="switchTab('activity',this)"><span class="ni">◎</span> Activity log</div>
+      <div class="nav-section-label">Management</div>
+      <div class="nav-item" onclick="switchTab('workers',this)"><span class="ni">🔧</span> Workers <span class="nav-badge" id="pendingBadge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="switchTab('customers',this)"><span class="ni">👤</span> Customers</div>
+      <div class="nav-item" onclick="switchTab('bookings',this)"><span class="ni">📋</span> Bookings</div>
+      <div class="nav-section-label">System</div>
+      <div class="nav-item" onclick="switchTab('settings',this)"><span class="ni">⚙</span> Settings</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-pill">
+        <div class="admin-avatar">A</div>
+        <div><div class="admin-name">Admin</div><div class="admin-role">super admin</div></div>
+        <div class="logout-btn" onclick="doLogout()" title="Logout">↩</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left"><h2 id="pageTitle">Dashboard overview</h2><p>local skill finder · admin</p></div>
+      <div class="topbar-right">
+        <div class="db-status ok" id="dbStatus"><div class="db-dot"></div> DB connected</div>
+        <div class="icon-btn" onclick="loadAll()" title="Refresh">↻</div>
+      </div>
+    </div>
+    <div class="page-content">
+
+      <!-- DASHBOARD TAB -->
+      <div id="tab-dashboard" class="tab-content fade-in">
+        <div class="stats-row">
+          <div class="stat-card purple"><div class="stat-icon">🔧</div><div class="stat-label">Total Workers</div><div class="stat-value" id="sc-workers">—</div><div class="stat-sub" id="sc-workers-sub">—</div></div>
+          <div class="stat-card green"><div class="stat-icon">👤</div><div class="stat-label">Total Customers</div><div class="stat-value" id="sc-customers">—</div><div class="stat-sub">registered users</div></div>
+          <div class="stat-card amber"><div class="stat-icon">📋</div><div class="stat-label">Total Bookings</div><div class="stat-value" id="sc-bookings">—</div><div class="stat-sub" id="sc-bookings-sub">—</div></div>
+          <div class="stat-card red"><div class="stat-icon">⏳</div><div class="stat-label">Pending Approvals</div><div class="stat-value" id="sc-pending">—</div><div class="stat-sub">workers awaiting review</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="section-wrap">
+            <div class="section-head"><div class="section-title">📊 Bookings by status</div></div>
+            <div class="chart-wrap">
+              <div class="bar-chart">
+                <div class="bar-col"><div class="bar-val" id="bc-pending">0</div><div class="bar" id="bb-pending" style="background:var(--amber);height:4px"></div><div class="bar-label">Pending</div></div>
+                <div class="bar-col"><div class="bar-val" id="bc-confirmed">0</div><div class="bar" id="bb-confirmed" style="background:var(--blue);height:4px"></div><div class="bar-label">Confirmed</div></div>
+                <div class="bar-col"><div class="bar-val" id="bc-completed">0</div><div class="bar" id="bb-completed" style="background:var(--green);height:4px"></div><div class="bar-label">Completed</div></div>
+                <div class="bar-col"><div class="bar-val" id="bc-cancelled">0</div><div class="bar" id="bb-cancelled" style="background:var(--red);height:4px"></div><div class="bar-label">Cancelled</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="section-wrap">
+            <div class="section-head"><div class="section-title">🕐 Recent bookings</div><span class="section-count" id="recentCount">0</span></div>
+            <div id="recentBookingsList"><div class="empty">Loading...</div></div>
+          </div>
+        </div>
+        <div class="section-wrap">
+          <div class="section-head">
+            <div class="section-title">⚠️ Pending worker approvals <span class="section-count" id="pendingCount">0</span></div>
+            <button class="filter-btn" onclick="switchTab('workers',document.querySelectorAll('.nav-item')[2])">View all →</button>
+          </div>
+          <table>
+            <thead><tr><th>Worker</th><th>Category</th><th>Location</th><th>Experience</th><th>Applied</th><th>Actions</th></tr></thead>
+            <tbody id="pendingBody"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);font-size:12.5px;"><span class="spinner-inline"></span>Loading from database...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- WORKERS TAB -->
+      <div id="tab-workers" class="tab-content fade-in" style="display:none;">
+        <div class="section-wrap">
+          <div class="section-head">
+            <div class="section-title">🔧 All workers <span class="section-count" id="wCount">0</span></div>
+            <div class="section-actions">
+              <button class="filter-btn active" onclick="filterWorkers('all',this)">All</button>
+              <button class="filter-btn" onclick="filterWorkers('pending',this)">Pending</button>
+              <button class="filter-btn" onclick="filterWorkers('approved',this)">Approved</button>
+              <button class="filter-btn" onclick="filterWorkers('rejected',this)">Rejected</button>
+              <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="workerSearch" placeholder="Search name..." oninput="renderWorkersTable()"></div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Worker</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Price range</th>
+                <th>Experience</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="workersBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);font-size:12.5px;"><span class="spinner-inline"></span>Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS TAB -->
+      <div id="tab-customers" class="tab-content fade-in" style="display:none;">
+        <div class="section-wrap">
+          <div class="section-head">
+            <div class="section-title">👤 All customers <span class="section-count" id="cCount">0</span></div>
+            <div class="section-actions"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="custSearch" placeholder="Search name..." oninput="renderCustomersTable()"></div></div>
+          </div>
+          <table><thead><tr><th>Customer</th><th>Phone</th><th>City</th><th>Pincode</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="customersBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);font-size:12.5px;"><span class="spinner-inline"></span>Loading...</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- BOOKINGS TAB -->
+      <div id="tab-bookings" class="tab-content fade-in" style="display:none;">
+        <div class="section-wrap">
+          <div class="section-head">
+            <div class="section-title">📋 All bookings <span class="section-count" id="bCount">0</span></div>
+            <div class="section-actions">
+              <button class="filter-btn active" onclick="filterBookings('all',this)">All</button>
+              <button class="filter-btn" onclick="filterBookings('pending',this)">Pending</button>
+              <button class="filter-btn" onclick="filterBookings('confirmed',this)">Confirmed</button>
+              <button class="filter-btn" onclick="filterBookings('completed',this)">Completed</button>
+              <button class="filter-btn" onclick="filterBookings('cancelled',this)">Cancelled</button>
+            </div>
+          </div>
+          <table><thead><tr><th>#</th><th>Customer</th><th>Worker</th><th>Service</th><th>Date</th><th>Urgency</th><th>Status</th></tr></thead>
+          <tbody id="bookingsBody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);font-size:12.5px;"><span class="spinner-inline"></span>Loading...</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- ACTIVITY TAB -->
+      <div id="tab-activity" class="tab-content fade-in" style="display:none;">
+        <div class="section-wrap">
+          <div class="section-head"><div class="section-title">◎ Activity log</div><button class="filter-btn" onclick="clearLog()">Clear</button></div>
+          <div id="activityLog"><div class="empty">No activity yet. Actions you perform will appear here.</div></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings" class="tab-content fade-in" style="display:none;">
+        <div class="section-wrap">
+          <div class="section-head"><div class="section-title">⚙ Settings</div></div>
+          <div style="padding:1.5rem 1.25rem;max-width:480px;">
+            <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">API Base URL</div>
+            <input id="apiUrlInput" value="http://localhost:5000/api" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;margin-bottom:.75rem;">
+            <button class="filter-btn active" onclick="saveSettings()">Save &amp; reconnect</button>
+            <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+              <div style="font-size:13px;font-weight:500;margin-bottom:.75rem;">Required backend routes</div>
+              <div style="font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text3);line-height:2.2;">
+                <span style="color:var(--green)">POST</span> /api/admin/login<br>
+                <span style="color:var(--blue)">GET</span>  /api/admin/stats<br>
+                <span style="color:var(--blue)">GET</span>  /api/admin/workers<br>
+                <span style="color:var(--amber)">PUT</span>  /api/admin/worker/status<br>
+                <span style="color:var(--blue)">GET</span>  /api/admin/customers<br>
+                <span style="color:var(--amber)">PUT</span>  /api/admin/customer/block<br>
+                <span style="color:var(--blue)">GET</span>  /api/admin/bookings
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- WORKER PROFILE MODAL -->
+<div class="modal-bg" id="profileModal" style="align-items:stretch;padding:0;">
+  <div style="background:var(--surface);width:100%;max-width:700px;margin:auto;border-radius:var(--radius);border:1px solid var(--border2);max-height:90vh;overflow-y:auto;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10;">
+      <div style="font-size:14px;font-weight:600;">👤 Worker Profile</div>
+      <button onclick="closeProfileModal()" style="background:var(--surface3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;">✕ Close</button>
+    </div>
+    <div id="profileModalBody" style="padding:1.5rem;">
+      <div style="text-align:center;padding:3rem;color:var(--text3);">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Confirm</div>
+    <div class="modal-desc" id="modalDesc">Are you sure?</div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="mbtn mbtn-confirm" id="modalConfirmBtn" onclick="execModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL='http://localhost:5000/api';
+var adminToken='';
+var allWorkers=[],allCustomers=[],allBookings=[];
+var workerFilter='all',bookingFilter='all';
+var activityLog=[];
+var modalAction=null;
+var COLORS=['#a78bfa','#60a5fa','#34d399','#fbbf24','#f87171','#5eead4'];
+
+function initials(n){return (n||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);}
+function colorFor(n){var i=0;for(var c of (n||''))i+=c.charCodeAt(0);return COLORS[i%COLORS.length];}
+function fmtDate(d){if(!d)return '—';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+
+function showToast(msg,type){var t=document.getElementById('toast');t.innerHTML=(type==='success'?'✅ ':'❌ ')+msg;t.className='toast '+(type||'')+' show';setTimeout(function(){t.classList.remove('show');},3000);}
+function setDbStatus(ok){var el=document.getElementById('dbStatus');el.className='db-status '+(ok?'ok':'err');el.innerHTML='<div class="db-dot"></div> '+(ok?'DB connected':'DB error');}
+function addLog(icon,msg,color){activityLog.unshift({icon,msg,color,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});if(activityLog.length>50)activityLog.pop();renderLog();}
+function renderLog(){var el=document.getElementById('activityLog');if(!activityLog.length){el.innerHTML='<div class="empty">No activity yet.</div>';return;}el.innerHTML=activityLog.map(function(a){return '<div class="activity-item"><div class="act-icon" style="background:'+a.color+'22;color:'+a.color+'">'+a.icon+'</div><div><div class="act-text">'+a.msg+'</div><div class="act-time-label">'+a.time+'</div></div></div>';}).join('');}
+function clearLog(){activityLog=[];renderLog();}
+
+/* ══════════════════════════════════════════
+   WORKER PROFILE MODAL
+══════════════════════════════════════════ */
+async function openProfileModal(workerId) {
+  document.getElementById('profileModal').classList.add('open');
+  document.getElementById('profileModalBody').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text3);"><span class="spinner-inline"></span> Loading profile...</div>';
+  try {
+    var res  = await fetch(API_URL+'/worker/view/'+workerId);
+    var data = await res.json();
+    if (data.success && data.worker) {
+      renderProfileModal(data.worker);
+    } else {
+      document.getElementById('profileModalBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--red);">❌ Worker not found.</div>';
+    }
+  } catch(e) {
+    document.getElementById('profileModalBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--red);">❌ Cannot reach server.</div>';
+  }
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.remove('open');
+}
+
+function renderProfileModal(w) {
+  var name     = w.full_name || w.name || 'Worker';
+  var color    = colorFor(name);
+  var initl    = initials(name);
+  var status   = w.status || 'pending';
+  var skills   = w.skills ? w.skills.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  var avail    = Array.isArray(w.availability) ? w.availability : (w.availability ? w.availability.split(',') : []);
+  var minP     = w.min_price != null ? '₹'+Number(w.min_price).toLocaleString('en-IN') : '—';
+  var maxP     = w.max_price != null ? '₹'+Number(w.max_price).toLocaleString('en-IN') : '—';
+  var photoHtml = w.profile_photo
+    ? '<img src="'+w.profile_photo+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2.5px solid var(--accent);"/>'
+    : '<div style="width:72px;height:72px;border-radius:50%;background:'+color+'22;color:'+color+';display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;border:2.5px solid '+color+'44;">'+initl+'</div>';
+
+  var statusColors = {approved:'var(--green)',pending:'var(--amber)',rejected:'var(--red)'};
+  var statusBg     = {approved:'var(--green-bg)',pending:'var(--amber-bg)',rejected:'var(--red-bg)'};
+
+  var skillsHtml = skills.length
+    ? skills.map(function(s){return '<span style="background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(124,106,247,.2);padding:3px 10px;border-radius:20px;font-size:11.5px;">'+esc(s)+'</span>';}).join('')
+    : '<span style="color:var(--text3);font-size:12px;">No skills listed</span>';
+
+  var availHtml = avail.length
+    ? avail.map(function(d){return '<span style="background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2);padding:3px 10px;border-radius:6px;font-size:11.5px;">'+esc(d)+'</span>';}).join('')
+    : '<span style="color:var(--text3);font-size:12px;">Not set</span>';
+
+  var timeHtml = (w.start_time && w.end_time)
+    ? '<span style="background:var(--surface3);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:12px;font-family:\'DM Mono\',monospace;">🕐 '+w.start_time+' – '+w.end_time+'</span>'
+    : '<span style="color:var(--text3);font-size:12px;">Not set</span>';
+
+  var workImgs = '';
+  if (w.work_images && w.work_images.length) {
+    workImgs = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
+    w.work_images.forEach(function(src,i){
+      workImgs += '<img src="'+src+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:pointer;" onclick="window.open(\''+src+'\',\'_blank\')" title="Work image '+(i+1)+'">';
+    });
+    workImgs += '</div>';
+  }
+
+  document.getElementById('profileModalBody').innerHTML =
+    /* ── HERO ── */
+    '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">'+
+      photoHtml+
+      '<div style="flex:1;">'+
+        '<div style="font-size:17px;font-weight:600;margin-bottom:4px;">'+esc(name)+'</div>'+
+        '<div style="color:var(--text2);font-size:13px;margin-bottom:6px;">🔧 '+esc(w.category||'—')+'</div>'+
+        '<span style="background:'+statusBg[status]+';color:'+statusColors[status]+';font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;font-family:\'DM Mono\',monospace;">● '+cap(status)+'</span>'+
+      '</div>'+
+      '<div>'+
+        '<a href="worker-profile-view.html?id='+w.id+'" target="_blank" style="background:var(--accent);color:white;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;display:inline-block;">↗ Full Profile</a>'+
+      '</div>'+
+    '</div>'+
+
+    /* ── INFO GRID ── */
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem;">'+
+      row('📧 Email',   w.email||'—')+
+      row('📱 Phone',   w.phone||'—')+
+      row('🏙️ City',    w.city||'—')+
+      row('📮 Pincode', w.pincode||'—')+
+      row('💼 Experience', (w.experience||'0')+' years')+
+      row('💰 Price Range', minP+' – '+maxP)+
+      row('📅 Joined',  fmtDate(w.created_at))+
+      row('🆔 Worker ID','#'+w.id)+
+    '</div>'+
+
+    /* ── DESCRIPTION ── */
+    (w.description
+      ? '<div style="margin-bottom:1.25rem;"><div style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">About</div>'+
+        '<div style="background:var(--surface2);border-radius:8px;padding:.75rem 1rem;font-size:13px;color:var(--text2);line-height:1.7;">'+esc(w.description)+'</div></div>'
+      : '')+
+
+    /* ── SKILLS ── */
+    '<div style="margin-bottom:1.25rem;"><div style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Skills</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+skillsHtml+'</div></div>'+
+
+    /* ── AVAILABILITY ── */
+    '<div style="margin-bottom:1.25rem;"><div style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Available Days</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'+availHtml+'</div>'+
+    timeHtml+'</div>'+
+
+    /* ── WORK IMAGES ── */
+    (w.work_images && w.work_images.length
+      ? '<div style="margin-bottom:1.25rem;"><div style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Work Images ('+w.work_images.length+')</div>'+workImgs+'</div>'
+      : '')+
+
+    /* ── ACTION BUTTONS ── */
+    '<div style="display:flex;gap:8px;padding-top:1rem;border-top:1px solid var(--border);flex-wrap:wrap;">'+
+      (status!=='approved'
+        ? '<button onclick="workerAction('+w.id+',\'approved\',\''+esc(name)+'\');closeProfileModal();" class="act-btn act-approve" style="padding:7px 18px;font-size:13px;">✅ Approve</button>'
+        : '')+
+      (status!=='rejected'
+        ? '<button onclick="workerAction('+w.id+',\'rejected\',\''+esc(name)+'\');closeProfileModal();" class="act-btn act-reject" style="padding:7px 18px;font-size:13px;">❌ Reject</button>'
+        : '')+
+      (status!=='pending'
+        ? '<button onclick="workerAction('+w.id+',\'pending\',\''+esc(name)+'\');closeProfileModal();" class="act-btn" style="padding:7px 18px;font-size:13px;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.2);">⏳ Set Pending</button>'
+        : '')+
+      '<a href="worker-profile-view.html?id='+w.id+'" target="_blank" class="act-btn act-view" style="padding:7px 18px;font-size:13px;">👁 Full Page View</a>'+
+    '</div>';
+}
+
+function row(label, value) {
+  return '<div style="background:var(--surface2);border-radius:8px;padding:.6rem .85rem;border-left:2px solid var(--accent);">'+
+    '<div style="font-size:10px;color:var(--text3);font-family:\'DM Mono\',monospace;margin-bottom:3px;">'+label+'</div>'+
+    '<div style="font-size:13px;color:var(--text);font-weight:500;">'+esc(value)+'</div>'+
+  '</div>';
+}
+
+/* ══════════════════════════════════════════
+   LOGIN / LOGOUT
+══════════════════════════════════════════ */
+async function doLogin(){
+  var email=document.getElementById('loginEmail').value.trim();
+  var pass=document.getElementById('loginPassword').value;
+  var btn=document.getElementById('loginBtn');
+  var err=document.getElementById('loginError');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='❌ Enter email and password';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Signing in...';
+  try{
+    var res=await fetch(API_URL+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+    var data=await res.json();
+    if(data.success){
+      adminToken=data.token;
+      localStorage.setItem('adminToken',adminToken);
+      document.getElementById('loginScreen').style.display='none';
+      var ds=document.getElementById('dashboardScreen');
+      ds.style.display='flex';
+      loadAll();
+    } else {
+      err.textContent='❌ '+(data.message||'Login failed');
+      err.style.display='block';
+    }
+  } catch(e){
+    err.textContent='❌ Cannot connect to server. Make sure node server.js is running.';
+    err.style.display='block';
+  }
+  btn.disabled=false;btn.textContent='Sign in';
+}
+
+function doLogout(){
+  openModal('Logout','Are you sure you want to logout?','mbtn-danger',function(){
+    adminToken='';localStorage.removeItem('adminToken');
+    document.getElementById('dashboardScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+  });
+}
+
+window.addEventListener('load',function(){
+  var saved=localStorage.getItem('adminToken');
+  if(saved){
+    adminToken=saved;
+    document.getElementById('loginScreen').style.display='none';
+    var ds=document.getElementById('dashboardScreen');
+    ds.style.display='flex';
+    loadAll();
+  }
+  document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===e.currentTarget)closeModal();});
+  document.getElementById('profileModal').addEventListener('click',function(e){if(e.target===e.currentTarget)closeProfileModal();});
+});
+
+/* ══════════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════════ */
+function switchTab(name,el){
+  document.querySelectorAll('.tab-content').forEach(function(t){t.style.display='none';});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var tab=document.getElementById('tab-'+name);
+  if(tab){tab.style.display='block';tab.classList.add('fade-in');}
+  if(el)el.classList.add('active');
+  var titles={dashboard:'Dashboard overview',workers:'Worker management',customers:'Customer management',bookings:'All bookings',activity:'Activity log',settings:'Settings'};
+  document.getElementById('pageTitle').textContent=titles[name]||name;
+}
+
+/* ══════════════════════════════════════════
+   DATA LOADING
+══════════════════════════════════════════ */
+async function loadAll(){
+  var headers={'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'};
+  try{
+    var sRes=await fetch(API_URL+'/admin/stats',{headers});
+    var sd=await sRes.json();
+    if(!sd.success){
+      if(sd.message==='Admin access required'||sd.message==='Invalid token'){showToast('Session expired — please login again','error');doLogout();return;}
+    }
+    var [wRes,cRes,bRes]=await Promise.all([
+      fetch(API_URL+'/admin/workers',{headers}),
+      fetch(API_URL+'/admin/customers',{headers}),
+      fetch(API_URL+'/admin/bookings',{headers})
+    ]);
+    var [wd,cd,bd]=await Promise.all([wRes.json(),cRes.json(),bRes.json()]);
+    setDbStatus(true);
+    if(wd.success)allWorkers=wd.workers||[];
+    if(cd.success)allCustomers=cd.customers||[];
+    if(bd.success)allBookings=bd.bookings||[];
+    if(sd.success)renderStatsFromAPI(sd.stats); else renderStatsFromData();
+    renderChart(sd.success?sd.stats.bookings:null);
+    renderPendingTable();renderWorkersTable();renderCustomersTable();renderBookingsTable();renderRecentBookings();
+  } catch(e){
+    setDbStatus(false);
+    showToast('Cannot reach server — is node server.js running?','error');
+    ['pendingBody','workersBody','customersBody','bookingsBody'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.innerHTML='<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--red);font-size:12.5px;">❌ Server not reachable. Start backend: node server.js</td></tr>';
+    });
+  }
+}
+
+/* ══════════════════════════════════════════
+   STATS
+══════════════════════════════════════════ */
+function renderStatsFromAPI(s){
+  document.getElementById('sc-workers').textContent=s.workers.total;
+  document.getElementById('sc-workers-sub').textContent=s.workers.approved+' approved';
+  document.getElementById('sc-customers').textContent=s.customers.total;
+  document.getElementById('sc-bookings').textContent=s.bookings.total;
+  document.getElementById('sc-bookings-sub').textContent=s.bookings.completed+' completed';
+  document.getElementById('sc-pending').textContent=s.workers.pending;
+  var pb=document.getElementById('pendingBadge');pb.textContent=s.workers.pending;pb.style.display=s.workers.pending>0?'inline':'none';
+  document.getElementById('pendingCount').textContent=s.workers.pending;
+}
+function renderStatsFromData(){
+  var pending=allWorkers.filter(function(w){return (w.status||'pending')==='pending';}).length;
+  document.getElementById('sc-workers').textContent=allWorkers.length;
+  document.getElementById('sc-workers-sub').textContent=allWorkers.filter(function(w){return w.status==='approved';}).length+' approved';
+  document.getElementById('sc-customers').textContent=allCustomers.length;
+  document.getElementById('sc-bookings').textContent=allBookings.length;
+  document.getElementById('sc-bookings-sub').textContent=allBookings.filter(function(b){return b.status==='completed';}).length+' completed';
+  document.getElementById('sc-pending').textContent=pending;
+  var pb=document.getElementById('pendingBadge');pb.textContent=pending;pb.style.display=pending>0?'inline':'none';
+  document.getElementById('pendingCount').textContent=pending;
+}
+function renderChart(s){
+  var p=s?s.pending:allBookings.filter(function(b){return (b.status||'pending')==='pending';}).length;
+  var c=s?s.confirmed:allBookings.filter(function(b){return b.status==='confirmed';}).length;
+  var d=s?s.completed:allBookings.filter(function(b){return b.status==='completed';}).length;
+  var x=s?s.cancelled:allBookings.filter(function(b){return b.status==='cancelled';}).length;
+  var max=Math.max(p,c,d,x,1);
+  [[p,'pending'],[c,'confirmed'],[d,'completed'],[x,'cancelled']].forEach(function(pair){
+    document.getElementById('bc-'+pair[1]).textContent=pair[0];
+    document.getElementById('bb-'+pair[1]).style.height=Math.max((pair[0]/max)*90,4)+'px';
+  });
+}
+function renderRecentBookings(){
+  var list=allBookings.slice(0,5);
+  document.getElementById('recentCount').textContent=list.length;
+  if(!list.length){document.getElementById('recentBookingsList').innerHTML='<div class="empty">No bookings in database yet.</div>';return;}
+  document.getElementById('recentBookingsList').innerHTML=list.map(function(b){
+    var s=b.status||'pending';
+    return '<div class="booking-row"><div class="bk-left"><div class="bk-names">'+esc(b.customer_name||'Customer')+' <span>→</span> '+esc(b.worker_name||'Worker')+'</div><div class="bk-meta">'+(b.worker_category||'—')+' · '+(b.address||'—')+'</div></div><div class="bk-right"><span class="badge '+s+'"><span class="badge-dot" style="background:currentColor"></span>'+cap(s)+'</span><div class="bk-date">'+(b.preferred_date||'—')+'</div></div></div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   PENDING TABLE (Dashboard quick view)
+══════════════════════════════════════════ */
+function renderPendingTable(){
+  var pending=allWorkers.filter(function(w){return (w.status||'pending')==='pending';});
+  var tbody=document.getElementById('pendingBody');
+  if(!pending.length){tbody.innerHTML='<tr><td colspan="6" class="empty" style="padding:2rem">✅ No pending approvals — all clear!</td></tr>';return;}
+  tbody.innerHTML=pending.map(function(w){
+    var c=colorFor(w.full_name||w.name);
+    var safeName=esc(w.full_name||w.name||'—');
+    return '<tr>'+
+      '<td><div class="user-cell"><div class="user-av" style="background:'+c+'22;color:'+c+'">'+initials(w.full_name||w.name)+'</div>'+
+      '<div><div class="user-name">'+safeName+'</div><div class="user-email">'+esc(w.email||'—')+'</div></div></div></td>'+
+      '<td>'+esc(w.category||'—')+'</td>'+
+      '<td>'+esc(w.city||'—')+'</td>'+
+      '<td>'+esc(w.experience||'0')+' yrs</td>'+
+      '<td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">'+fmtDate(w.created_at)+'</td>'+
+      '<td><div class="action-btns">'+
+        '<button class="act-btn act-view" onclick="openProfileModal('+w.id+')">👁 View</button>'+
+        '<button class="act-btn act-approve" onclick="workerAction('+w.id+',\'approved\',\''+safeName+'\')">✅ Approve</button>'+
+        '<button class="act-btn act-reject"  onclick="workerAction('+w.id+',\'rejected\',\''+safeName+'\')">❌ Reject</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   WORKERS TABLE (Workers tab — with View Profile column)
+══════════════════════════════════════════ */
+function renderWorkersTable(){
+  var q=(document.getElementById('workerSearch')||{}).value||'';
+  var list=allWorkers.filter(function(w){
+    if(workerFilter!=='all'&&(w.status||'pending')!==workerFilter)return false;
+    if(q&&!(w.full_name||w.name||'').toLowerCase().includes(q.toLowerCase()))return false;
+    return true;
+  });
+  document.getElementById('wCount').textContent=list.length;
+  if(!list.length){
+    document.getElementById('workersBody').innerHTML='<tr><td colspan="7" class="empty" style="padding:2rem">No workers found.</td></tr>';
+    return;
+  }
+  document.getElementById('workersBody').innerHTML=list.map(function(w){
+    var c=colorFor(w.full_name||w.name);
+    var st=w.status||'pending';
+    var minP=w.min_price!=null?'₹'+w.min_price:'—';
+    var maxP=w.max_price!=null?'₹'+w.max_price:'—';
+    var safeName=esc(w.full_name||w.name||'—');
+    return '<tr>'+
+      '<td><div class="user-cell">'+
+        '<div class="user-av" style="background:'+c+'22;color:'+c+'">'+initials(w.full_name||w.name)+'</div>'+
+        '<div><div class="user-name">'+safeName+'</div><div class="user-email">'+esc(w.email||'—')+'</div></div>'+
+      '</div></td>'+
+      '<td>'+esc(w.category||'—')+'</td>'+
+      '<td>'+esc(w.city||'—')+'</td>'+
+      '<td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent2)">'+minP+' – '+maxP+'</td>'+
+      '<td>'+esc(w.experience||'0')+' yrs</td>'+
+      '<td><span class="badge '+st+'"><span class="badge-dot" style="background:currentColor"></span>'+cap(st)+'</span></td>'+
+      '<td><div class="action-btns">'+
+        /* ── VIEW PROFILE BUTTON (always shown) ── */
+        '<button class="act-btn act-view" onclick="openProfileModal('+w.id+')">👁 View</button>'+
+        /* ── APPROVE (not shown if already approved) ── */
+        (st!=='approved'?'<button class="act-btn act-approve" onclick="workerAction('+w.id+',\'approved\',\''+safeName+'\')">✅</button>':'')+
+        /* ── REJECT (not shown if already rejected) ── */
+        (st!=='rejected'?'<button class="act-btn act-reject"  onclick="workerAction('+w.id+',\'rejected\',\''+safeName+'\')">❌</button>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   CUSTOMERS TABLE
+══════════════════════════════════════════ */
+function renderCustomersTable(){
+  var q=(document.getElementById('custSearch')||{}).value||'';
+  var list=allCustomers.filter(function(c){if(q&&!(c.full_name||c.name||'').toLowerCase().includes(q.toLowerCase()))return false;return true;});
+  document.getElementById('cCount').textContent=list.length;
+  if(!list.length){document.getElementById('customersBody').innerHTML='<tr><td colspan="7" class="empty" style="padding:2rem">No customers found.</td></tr>';return;}
+  document.getElementById('customersBody').innerHTML=list.map(function(c){
+    var col=colorFor(c.full_name||c.name);var blocked=c.status==='blocked';
+    return '<tr><td><div class="user-cell"><div class="user-av" style="background:'+col+'22;color:'+col+'">'+initials(c.full_name||c.name)+'</div><div><div class="user-name">'+esc(c.full_name||c.name||'—')+'</div><div class="user-email">'+esc(c.email||'—')+'</div></div></div></td><td style="font-family:\'DM Mono\',monospace;font-size:11.5px">'+esc(c.phone||'—')+'</td><td>'+esc(c.city||'—')+'</td><td style="font-family:\'DM Mono\',monospace;font-size:11.5px">'+esc(c.pincode||'—')+'</td><td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">'+fmtDate(c.created_at)+'</td><td><span class="badge '+(blocked?'blocked':'active2')+'"><span class="badge-dot" style="background:currentColor"></span>'+(blocked?'Blocked':'Active')+'</span></td><td><div class="action-btns">'+(!blocked?'<button class="act-btn act-block" onclick="toggleBlock('+c.id+',true,\''+esc(c.full_name||c.name)+'\')">Block</button>':'<button class="act-btn act-unblock" onclick="toggleBlock('+c.id+',false,\''+esc(c.full_name||c.name)+'\')">Unblock</button>')+'</div></td></tr>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   BOOKINGS TABLE
+══════════════════════════════════════════ */
+function renderBookingsTable(){
+  var list=allBookings.filter(function(b){return bookingFilter==='all'||b.status===bookingFilter;});
+  document.getElementById('bCount').textContent=list.length;
+  if(!list.length){document.getElementById('bookingsBody').innerHTML='<tr><td colspan="7" class="empty" style="padding:2rem">No bookings found.</td></tr>';return;}
+  document.getElementById('bookingsBody').innerHTML=list.map(function(b){
+    var s=b.status||'pending';var urg=b.urgency||'normal';
+    var urgColor={normal:'var(--green)',urgent:'var(--amber)',emergency:'var(--red)'}[urg]||'var(--text3)';
+    return '<tr><td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">#'+esc(b.id)+'</td><td>'+esc(b.customer_name||'—')+'</td><td>'+esc(b.worker_name||'—')+'</td><td>'+esc(b.worker_category||'—')+'</td><td style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">'+(b.preferred_date||'—')+'</td><td><span style="font-size:11px;color:'+urgColor+';font-weight:500">'+cap(urg)+'</span></td><td><span class="badge '+s+'"><span class="badge-dot" style="background:currentColor"></span>'+cap(s)+'</span></td></tr>';
+  }).join('');
+}
+
+function filterWorkers(f,btn){workerFilter=f;document.querySelectorAll('#tab-workers .filter-btn').forEach(function(b){b.classList.remove('active');});if(btn)btn.classList.add('active');renderWorkersTable();}
+function filterBookings(f,btn){bookingFilter=f;document.querySelectorAll('#tab-bookings .filter-btn').forEach(function(b){b.classList.remove('active');});if(btn)btn.classList.add('active');renderBookingsTable();}
+
+/* ══════════════════════════════════════════
+   WORKER / CUSTOMER ACTIONS
+══════════════════════════════════════════ */
+async function workerAction(id,action,name){
+  var headers={'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'};
+  try{
+    var res=await fetch(API_URL+'/admin/worker/status',{method:'PUT',headers:headers,body:JSON.stringify({worker_id:id,status:action})});
+    var data=await res.json();
+    if(data.success){
+      var idx=allWorkers.findIndex(function(w){return w.id==id;});
+      if(idx>=0)allWorkers[idx].status=action;
+      renderPendingTable();renderWorkersTable();renderStatsFromData();
+      var emoji = action==='approved' ? '✅' : action==='rejected' ? '❌' : '⏳';
+      var color = action==='approved' ? '#34d399' : action==='rejected' ? '#f87171' : '#fbbf24';
+      addLog(emoji,'<strong>'+esc(name)+'</strong> was <strong>'+action+'</strong>',color);
+      showToast(name+' '+action,action==='approved'?'success':'error');
+    } else {
+      showToast(data.message||'Update failed','error');
+    }
+  } catch(e){showToast('Server error','error');}
+}
+
+async function toggleBlock(id,block,name){
+  var headers={'Authorization':'Bearer '+adminToken,'Content-Type':'application/json'};
+  try{
+    var res=await fetch(API_URL+'/admin/customer/block',{method:'PUT',headers:headers,body:JSON.stringify({customer_id:id,status:block?'blocked':'active'})});
+    var data=await res.json();
+    if(data.success){
+      var idx=allCustomers.findIndex(function(c){return c.id==id;});if(idx>=0)allCustomers[idx].status=block?'blocked':'active';
+      renderCustomersTable();
+      addLog(block?'🚫':'✅','<strong>'+esc(name)+'</strong> was <strong>'+(block?'blocked':'unblocked')+'</strong>',block?'#f87171':'#34d399');
+      showToast(name+' '+(block?'blocked':'unblocked'),block?'error':'success');
+    } else {showToast(data.message||'Update failed','error');}
+  } catch(e){showToast('Server error','error');}
+}
+
+function openModal(title,desc,cls,action){document.getElementById('modalTitle').textContent=title;document.getElementById('modalDesc').textContent=desc;document.getElementById('modalConfirmBtn').className='mbtn '+(cls||'mbtn-confirm');modalAction=action;document.getElementById('modalBg').classList.add('open');}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');modalAction=null;}
+function execModal(){if(modalAction)modalAction();closeModal();}
+function saveSettings(){var url=document.getElementById('apiUrlInput').value.trim();if(url)API_URL=url;showToast('Settings saved — reconnecting...','success');loadAll();}
+</script>
+</body>
+</html>

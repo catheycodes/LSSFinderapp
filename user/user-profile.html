@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.95);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h2 { color: #667eea; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { text-decoration: none; color: #333; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover { color: #667eea; }
+
+        .container { max-width: 700px; margin: 2rem auto; padding: 0 2rem; }
+
+        .loading-wrap {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 3rem; gap: 1rem;
+        }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 5px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #667eea; font-weight: 600; font-size: 0.95rem; }
+
+        .profile-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .avatar {
+            width: 90px; height: 90px; min-width: 90px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            border: 3px solid white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 700; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .profile-header-info { display: flex; flex-direction: column; gap: 0.5rem; }
+        .profile-name { font-size: 1.7rem; font-weight: 700; color: white; }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .member-since {
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.8);
+            margin-top: 0.2rem;
+        }
+
+        .profile-body { padding: 2rem; }
+
+        .section-title {
+            font-size: 1rem; font-weight: 700; color: #667eea;
+            margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .detail-item {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 1rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .detail-item.full-width { grid-column: 1 / -1; }
+
+        .detail-label {
+            font-size: 0.78rem; color: #999;
+            font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 0.35rem;
+        }
+
+        .detail-value { font-size: 1rem; color: #333; font-weight: 500; }
+
+        .error-box {
+            background: #fee; color: #c33;
+            border: 1px solid #fcc;
+            border-radius: 10px; padding: 1rem;
+            margin-bottom: 1rem; display: none;
+            font-size: 0.9rem;
+        }
+
+        /* ── Logout button ── */
+        .logout-full-btn {
+            display: block; width: 100%; text-align: center;
+            margin-top: 1.5rem; padding: 0.85rem;
+            background: linear-gradient(135deg, #e53935, #c62828);
+            color: white; border: none; border-radius: 10px;
+            font-weight: 600; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .logout-full-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(229,57,53,0.4); }
+
+        @media (max-width: 600px) {
+            .detail-grid { grid-template-columns: 1fr; }
+            .detail-item.full-width { grid-column: 1; }
+            .profile-header { flex-direction: column; text-align: center; }
+            .badge { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <h2>🔧 Local Skill Finder</h2>
+        <div class="nav-links">
+            <a href="user-dashboard.html">← Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-card">
+
+            <div id="loadingWrap" class="loading-wrap">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading your profile...</div>
+            </div>
+
+            <div id="profileContent" style="display:none;">
+
+                <div class="profile-header">
+                    <div class="avatar" id="avatarInitial">U</div>
+                    <div class="profile-header-info">
+                        <div class="profile-name" id="profileName">—</div>
+                        <div class="badge">👤 Customer</div>
+                        <div class="member-since" id="memberSince"></div>
+                    </div>
+                </div>
+
+                <div class="profile-body">
+
+                    <div id="errorBox" class="error-box"></div>
+
+                    <div class="section-title">📋 Personal Details</div>
+
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Full Name</div>
+                            <div class="detail-value" id="d_name">—</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Phone Number</div>
+                            <div class="detail-value" id="d_phone">—</div>
+                        </div>
+                        <div class="detail-item full-width">
+                            <div class="detail-label">Email Address</div>
+                            <div class="detail-value" id="d_email">—</div>
+                        </div>
+                        <div class="detail-item full-width">
+                            <div class="detail-label">Address</div>
+                            <div class="detail-value" id="d_address">—</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">City</div>
+                            <div class="detail-value" id="d_city">—</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Pincode</div>
+                            <div class="detail-value" id="d_pincode">—</div>
+                        </div>
+                        <div class="detail-item full-width">
+                            <div class="detail-label">Member Since</div>
+                            <div class="detail-value" id="d_joined">—</div>
+                        </div>
+                    </div>
+
+                    <!-- LOGOUT → goes to index.html -->
+                    <button class="logout-full-btn" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        window.onload = async function () {
+            const token = localStorage.getItem('token');
+            const user  = JSON.parse(localStorage.getItem('user') || '{}');
+
+            if (!token) {
+                window.location.href = '../login.html';
+                return;
+            }
+
+            try {
+                const res  = await fetch(`${API_URL}/customer/profile`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+
+                if (data.success && data.customer) {
+                    fillProfile(data.customer);
+                } else {
+                    showError('Could not load from server. Showing saved data.');
+                    fillProfile(user, true);
+                }
+
+            } catch (err) {
+                showError('Server not reachable. Showing saved data.');
+                fillProfile(user, true);
+            }
+
+            document.getElementById('loadingWrap').style.display   = 'none';
+            document.getElementById('profileContent').style.display = 'block';
+        };
+
+        function fillProfile(c, isLocal = false) {
+            const name = c.full_name || c.name || 'Not provided';
+
+            document.getElementById('profileName').textContent   = name;
+            document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+            document.getElementById('d_name').textContent        = name;
+            document.getElementById('d_phone').textContent       = c.phone    || 'Not provided';
+            document.getElementById('d_email').textContent       = c.email    || 'Not provided';
+            document.getElementById('d_address').textContent     = c.address  || 'Not provided';
+            document.getElementById('d_city').textContent        = c.city     || 'Not provided';
+            document.getElementById('d_pincode').textContent     = c.pincode  || 'Not provided';
+
+            if (c.created_at) {
+                const d   = new Date(c.created_at);
+                const fmt = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+                document.getElementById('d_joined').textContent    = fmt;
+                document.getElementById('memberSince').textContent = '📅 Member since ' + fmt;
+            }
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent   = msg;
+            box.style.display = 'block';
+        }
+
+        /* ================================================
+           LOGOUT — clears storage and redirects to index.html
+        ================================================ */
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('myBookings');
+            window.location.href = '../index.html';
+        }
+    </script>
+
+</body>
+</html>

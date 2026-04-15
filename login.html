@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+
+        .login-container { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; max-width: 900px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+
+        .login-left { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem; display: flex; flex-direction: column; justify-content: center; }
+        .login-left h2 { font-size: 2rem; margin-bottom: 1rem; }
+        .login-left p { opacity: 0.9; line-height: 1.6; margin-bottom: 2rem; }
+        .features-list { list-style: none; }
+        .features-list li { padding: 0.75rem 0; display: flex; align-items: center; gap: 0.75rem; }
+        .features-list li::before { content: "✓"; background: rgba(255,255,255,0.2); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        .login-right { padding: 3rem; }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo-icon { font-size: 3rem; }
+        .logo h1 { color: #333; font-size: 1.5rem; margin-top: 0.5rem; }
+
+        .role-selector { display: flex; gap: 1rem; margin-bottom: 2rem; }
+        .role-option { flex: 1; position: relative; }
+        .role-option input[type="radio"] { position: absolute; opacity: 0; }
+        .role-label { display: block; padding: 1rem; border: 2px solid #e0e0e0; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.3s; font-weight: 500; }
+        .role-label:hover { border-color: #667eea; }
+        .role-option input[type="radio"]:checked + .role-label { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
+        .input-group { position: relative; }
+        .input-group input { width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: border-color 0.3s; font-family: inherit; }
+        .input-group input:focus { outline: none; border-color: #667eea; }
+        .input-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #999; }
+        .password-toggle { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; user-select: none; }
+
+        .form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .remember-me { display: flex; align-items: center; gap: 0.5rem; }
+        .remember-me label { cursor: pointer; color: #666; font-size: 0.9rem; }
+        .forgot-password { color: #667eea; text-decoration: none; font-size: 0.9rem; }
+
+        .login-btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .divider { text-align: center; margin: 1.5rem 0; color: #999; position: relative; }
+        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #e0e0e0; }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+
+        .signup-link { text-align: center; margin-top: 1.5rem; color: #666; }
+        .signup-link a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .back-home { text-align: center; margin-top: 1rem; }
+        .back-home a { color: #999; text-decoration: none; font-size: 0.9rem; }
+        .back-home a:hover { color: #667eea; }
+
+        .alert { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: none; font-weight: 500; }
+        .alert-error   { background: #fee; color: #c33; border: 1px solid #fcc; }
+        .alert-success { background: #efe; color: #3c3; border: 1px solid #cfc; }
+
+        @media (max-width: 768px) {
+            .login-container { grid-template-columns: 1fr; }
+            .login-left { display: none; }
+            .login-right { padding: 2rem; }
+            .role-selector { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <div class="login-left">
+        <h2>Welcome Back!</h2>
+        <p>Login to access your account and connect with skilled workers or manage your services.</p>
+        <ul class="features-list">
+            <li>Find trusted local workers</li>
+            <li>Book services instantly</li>
+            <li>Track your bookings</li>
+            <li>Rate and review services</li>
+        </ul>
+    </div>
+
+    <div class="login-right">
+        <div class="logo">
+            <div class="logo-icon">🔧</div>
+            <h1>Login</h1>
+        </div>
+
+        <div class="role-selector">
+            <div class="role-option">
+                <input type="radio" id="roleCustomer" name="role" value="customer" checked>
+                <label for="roleCustomer" class="role-label">👤 Customer</label>
+            </div>
+            <div class="role-option">
+                <input type="radio" id="roleWorker" name="role" value="worker">
+                <label for="roleWorker" class="role-label">🔧 Worker</label>
+            </div>
+        </div>
+
+        <div id="alertMessage" class="alert"></div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Email Address</label>
+                <div class="input-group">
+                    <span class="input-icon">📧</span>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                    <span class="password-toggle" onclick="togglePassword()">👁️</span>
+                </div>
+            </div>
+            <div class="form-options">
+                <div class="remember-me">
+                    <input type="checkbox" id="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <a href="#" class="forgot-password">Forgot Password?</a>
+            </div>
+            <button type="submit" class="login-btn" id="loginBtn">Login</button>
+        </form>
+
+        <div class="divider">OR</div>
+        <div class="signup-link">Don't have an account? <a href="register.html">Sign Up</a></div>
+        <div class="back-home"><a href="index.html">← Back to Home</a></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:5000/api';
+
+    /* ================================================
+       ALREADY LOGGED IN → AUTO REDIRECT to dashboard
+       (NOT index.html — user intentionally logged in)
+    ================================================ */
+    window.addEventListener('load', () => {
+        const token = localStorage.getItem('token');
+        const user  = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) { return {}; } })();
+
+        if (token && user && (user.full_name || user.name)) {
+            redirectToDashboard(user.role || 'customer');
+        }
+    });
+
+    /* ================================================
+       After LOGIN → go to role-specific dashboard
+       After LOGOUT (from profile) → lands on index.html
+       (logout is handled in user-profile.html)
+    ================================================ */
+    function redirectToDashboard(role) {
+        if (role === 'worker') {
+            window.location.href = 'worker/worker-dashboard.html';
+        } else {
+            window.location.href = 'user/user-dashboard.html';
+        }
+    }
+
+    async function handleLogin(event) {
+        event.preventDefault();
+
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const role     = document.querySelector('input[name="role"]:checked').value;
+        const btn      = document.getElementById('loginBtn');
+
+        btn.disabled    = true;
+        btn.textContent = 'Logging in...';
+
+        try {
+            const endpoint = role === 'worker'
+                ? `${API_URL}/worker/login`
+                : `${API_URL}/customer/login`;
+
+            const res  = await fetch(endpoint, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user',  JSON.stringify({ ...data.user, role }));
+
+                showAlert('✅ Login successful! Redirecting...', 'success');
+
+                // → Go to dashboard (NOT index.html)
+                setTimeout(() => redirectToDashboard(role), 1200);
+            } else {
+                showAlert('❌ ' + (data.message || 'Invalid email or password'));
+                btn.disabled    = false;
+                btn.textContent = 'Login';
+            }
+
+        } catch(err) {
+            showAlert('❌ Cannot connect to server! Make sure backend is running (node server.js)');
+            btn.disabled    = false;
+            btn.textContent = 'Login';
+        }
+    }
+
+    function togglePassword() {
+        const inp    = document.getElementById('password');
+        const toggle = document.querySelector('.password-toggle');
+        if (inp.type === 'password') { inp.type = 'text';     toggle.textContent = '🙈'; }
+        else                         { inp.type = 'password'; toggle.textContent = '👁️'; }
+    }
+
+    function showAlert(msg, type = 'error') {
+        const el = document.getElementById('alertMessage');
+        el.className     = `alert alert-${type}`;
+        el.textContent   = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 5000);
+    }
+</script>
+</body>
+</html>

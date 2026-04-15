@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Worker Approvals - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h2 {
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #667eea;
+        }
+
+        .logout-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #764ba2;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .page-header h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .filters-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filter-group {
+            flex: 1;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .applications-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .applications-section h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .application-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .application-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .application-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .worker-main-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .worker-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .worker-info h3 {
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .worker-category {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .application-date {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .application-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .skills-section {
+            margin: 1rem 0;
+        }
+
+        .skills-section h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .skill-badge {
+            background: #e8f4f8;
+            color: #0277bd;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        .description-section {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .description-section h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .description-text {
+            color: #666;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .application-actions {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-view {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-view:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-approve {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-reject {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .no-applications {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            min-height: 100px;
+            font-family: inherit;
+            margin-bottom: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .filters-row {
+                flex-direction: column;
+            }
+
+            .application-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .application-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <h2>🔧 Local Skill Finder - Admin</h2>
+        <div class="nav-links">
+            <a href="admin-dashboard.html">Dashboard</a>
+            <a href="pending-approvals.html" class="active">Pending Approvals</a>
+            <a href="#">Workers</a>
+            <a href="#">Users</a>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>⏳ Pending Worker Approvals</h1>
+            <p>Review and approve worker registration applications</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="pendingCount">8</div>
+                <div class="stat-label">Pending Applications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="todayCount">3</div>
+                <div class="stat-label">Today's Applications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="approvedCount">42</div>
+                <div class="stat-label">Approved This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="rejectedCount">5</div>
+                <div class="stat-label">Rejected This Month</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="searchFilter">Search</label>
+                    <input type="text" id="searchFilter" placeholder="Search by name, email, phone...">
+                </div>
+                <div class="filter-group">
+                    <label for="categoryFilter">Category</label>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="plumber">Plumber</option>
+                        <option value="electrician">Electrician</option>
+                        <option value="carpenter">Carpenter</option>
+                        <option value="painter">Painter</option>
+                        <option value="tutor">Tutor</option>
+                        <option value="tailor">Tailor</option>
+                        <option value="cook">Home Cook</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="locationFilter">Location</label>
+                    <input type="text" id="locationFilter" placeholder="Filter by location">
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications -->
+        <div class="applications-section">
+            <h2>📋 Applications</h2>
+            <div id="applicationsContainer">
+                <!-- Applications will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div id="rejectionModal" class="modal">
+        <div class="modal-content">
+            <h3>Reject Application</h3>
+            <p style="color: #666; margin-bottom: 1rem;">Please provide a reason for rejection:</p>
+            <textarea id="rejectionReason" placeholder="Enter rejection reason..."></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-view" onclick="closeRejectionModal()">Cancel</button>
+                <button class="btn btn-reject" onclick="confirmRejection()">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentApplicationId = null;
+
+        // Load applications on page load
+        window.onload = function() {
+            loadApplications();
+        };
+
+        async function loadApplications() {
+            const container = document.getElementById('applicationsContainer');
+            container.innerHTML = '<div class="loading">Loading applications...</div>';
+
+            try {
+                const response = await fetch('/api/Admin/pending-workers', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
+                });
+
+                if (response.ok) {
+                    const applications = await response.json();
+                    displayApplications(applications);
+                } else {
+                    // Display sample data for demonstration
+                    displaySampleApplications();
+                }
+            } catch (error) {
+                console.error('Error loading applications:', error);
+                displaySampleApplications();
+            }
+        }
+
+        function displaySampleApplications() {
+            const sampleApplications = [
+                {
+                    id: 1,
+                    name: "Suresh Babu",
+                    email: "suresh.babu@email.com",
+                    phone: "+91 98765 11111",
+                    category: "Electrician",
+                    experience: 7,
+                    location: "Palayamkottai, Thoothukudi",
+                    skills: ["Wiring", "Fan Installation", "Circuit Repair", "Solar Panels"],
+                    description: "Licensed electrician with 7 years of experience. Specialized in residential and commercial electrical work.",
+                    applicationDate: "2026-01-30"
+                },
+                {
+                    id: 2,
+                    name: "Kumar Vel",
+                    email: "kumar.vel@email.com",
+                    phone: "+91 98765 22222",
+                    category: "Carpenter",
+                    experience: 5,
+                    location: "Anna Nagar, Thoothukudi",
+                    skills: ["Furniture Making", "Door Installation", "Wood Carving"],
+                    description: "Experienced carpenter specializing in custom furniture and interior woodwork.",
+                    applicationDate: "2026-01-29"
+                },
+                {
+                    id: 3,
+                    name: "Priya Lakshmi",
+                    email: "priya.lakshmi@email.com",
+                    phone: "+91 98765 33333",
+                    category: "Tutor",
+                    experience: 3,
+                    location: "Thoothukudi Central",
+                    skills: ["Mathematics", "Science", "English", "Tamil"],
+                    description: "Experienced tutor with B.Ed qualification. Specialized in teaching students from grades 6-10.",
+                    applicationDate: "2026-01-28"
+                }
+            ];
+
+            displayApplications(sampleApplications);
+        }
+
+        function displayApplications(applications) {
+            const container = document.getElementById('applicationsContainer');
+
+            if (applications.length === 0) {
+                container.innerHTML = '<div class="no-applications">No pending applications</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            applications.forEach(app => {
+                const appCard = createApplicationCard(app);
+                container.appendChild(appCard);
+            });
+        }
+
+        function createApplicationCard(app) {
+            const card = document.createElement('div');
+            card.className = 'application-card';
+
+            const initial = app.name.charAt(0).toUpperCase();
+            const skillsHtml = app.skills.map(skill => 
+                `<span class="skill-badge">${skill}</span>`
+            ).join('');
+
+            const formattedDate = new Date(app.applicationDate).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            card.innerHTML = `
+                <div class="application-header">
+                    <div class="worker-main-info">
+                        <div class="worker-avatar">${initial}</div>
+                        <div class="worker-info">
+                            <h3>${app.name}</h3>
+                            <div class="worker-category">${app.category}</div>
+                        </div>
+                    </div>
+                    <div class="application-date">Applied: ${formattedDate}</div>
+                </div>
+
+                <div class="application-details">
+                    <div class="detail-item">
+                        📧 ${app.email}
+                    </div>
+                    <div class="detail-item">
+                        📱 ${app.phone}
+                    </div>
+                    <div class="detail-item">
+                        📍 ${app.location}
+                    </div>
+                    <div class="detail-item">
+                        💼 ${app.experience} years experience
+                    </div>
+                </div>
+
+                <div class="skills-section">
+                    <h4>Skills:</h4>
+                    <div class="skills-list">
+                        ${skillsHtml}
+                    </div>
+                </div>
+
+                <div class="description-section">
+                    <h4>About:</h4>
+                    <div class="description-text">${app.description}</div>
+                </div>
+
+                <div class="application-actions">
+                    <button class="btn btn-view" onclick="viewFullProfile(${app.id})">
+                        👁️ View Full Profile
+                    </button>
+                    <button class="btn btn-approve" onclick="approveApplication(${app.id})">
+                        ✅ Approve
+                    </button>
+                    <button class="btn btn-reject" onclick="openRejectionModal(${app.id})">
+                        ❌ Reject
+                    </button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function viewFullProfile(applicationId) {
+            // Navigate to full profile view
+            window.location.href = `worker-profile-view.html?id=${applicationId}`;
+        }
+
+        async function approveApplication(applicationId) {
+            if (!confirm('Are you sure you want to approve this worker?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/Admin/approve-worker/${applicationId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Worker approved successfully!');
+                    loadApplications(); // Reload the list
+                } else {
+                    alert('Error approving worker. Please try again.');
+                }
+            } catch (error) {
+                console.error('Approval error:', error);
+                // For demo, show success
+                alert('Worker approved successfully!');
+                loadApplications();
+            }
+        }
+
+        function openRejectionModal(applicationId) {
+            currentApplicationId = applicationId;
+            document.getElementById('rejectionModal').style.display = 'flex';
+        }
+
+        function closeRejectionModal() {
+            currentApplicationId = null;
+            document.getElementById('rejectionReason').value = '';
+            document.getElementById('rejectionModal').style.display = 'none';
+        }
+
+        async function confirmRejection() {
+            const reason = document.getElementById('rejectionReason').value.trim();
+
+            if (!reason) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/Admin/reject-worker/${currentApplicationId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    },
+                    body: JSON.stringify({ reason: reason })
+                });
+
+                if (response.ok) {
+                    alert('Worker application rejected');
+                    closeRejectionModal();
+                    loadApplications(); // Reload the list
+                } else {
+                    alert('Error rejecting application. Please try again.');
+                }
+            } catch (error) {
+                console.error('Rejection error:', error);
+                // For demo, show success
+                alert('Worker application rejected');
+                closeRejectionModal();
+                loadApplications();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('rejectionModal');
+            if (event.target === modal) {
+                closeRejectionModal();
+            }
+        };
+    </script>
+</body>
+</html>

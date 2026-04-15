@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard - Local Skill Finder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        @keyframes spin   { to{transform:rotate(360deg);} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+        /* ═══ SIDEBAR ═══ */
+        .sb-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;opacity:0;pointer-events:none;transition:opacity 0.3s; }
+        .sb-overlay.show { opacity:1;pointer-events:all; }
+        .sidebar { position:fixed;top:0;left:0;width:265px;height:100vh;background:white;box-shadow:4px 0 24px rgba(0,0,0,0.15);z-index:300;transform:translateX(-100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;overflow:hidden; }
+        .sidebar.open { transform:translateX(0); }
+        .sb-head { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:1.5rem 1.25rem;display:flex;align-items:center;gap:0.85rem; }
+        .sb-logo { width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0; }
+        .sb-brand { font-size:1.05rem;font-weight:700;color:white; }
+        .sb-brand span { opacity:0.8;font-weight:400; }
+        .sb-worker { padding:1.1rem 1.25rem;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:0.85rem; }
+        .sb-avatar { width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:white;flex-shrink:0;overflow:hidden;border:2.5px solid #667eea; }
+        .sb-avatar img { width:100%;height:100%;object-fit:cover;display:none; }
+        .sb-avatar.has-photo img { display:block; }
+        .sb-avatar.has-photo span { display:none; }
+        .sb-wname { font-weight:700;font-size:0.88rem;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:165px; }
+        .sb-wcat  { font-size:0.75rem;color:#667eea;margin-top:2px; }
+        .sb-nav { flex:1;padding:0.85rem 0.75rem;overflow-y:auto; }
+        .nav-sec-lbl { font-size:0.67rem;font-weight:700;letter-spacing:0.1em;color:#bbb;padding:0.5rem 0.5rem 0.3rem;text-transform:uppercase; }
+        .nav-item { display:flex;align-items:center;gap:0.75rem;padding:0.65rem 0.75rem;border-radius:10px;cursor:pointer;font-size:0.88rem;font-weight:500;color:#555;transition:all 0.2s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left;font-family:inherit;text-decoration:none; }
+        .nav-item:hover { background:#f5f6ff;color:#667eea; }
+        .nav-item.active { background:rgba(102,126,234,0.12);color:#667eea;font-weight:600; }
+        .nav-icon { font-size:1rem;width:20px;text-align:center;flex-shrink:0; }
+        .nav-badge { margin-left:auto;background:#ff5252;color:white;font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:10px;animation:pulse 1.5s infinite; }
+        .sb-foot { padding:0.85rem 0.75rem;border-top:1px solid #f0f0f0; }
+        .sb-db-badge { display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.75rem;font-weight:700;background:rgba(76,175,80,0.1);color:#2e7d32;border:1px solid rgba(76,175,80,0.3);margin-bottom:0.5rem; }
+        .sb-db-badge.warn { background:rgba(255,152,0,0.1);color:#e65100;border-color:rgba(255,152,0,0.3); }
+        .sb-db-badge.err  { background:rgba(244,67,54,0.1);color:#c62828;border-color:rgba(244,67,54,0.3); }
+        .btn-logout { display:flex;align-items:center;gap:0.75rem;padding:0.65rem 0.75rem;border-radius:10px;cursor:pointer;font-size:0.88rem;font-weight:600;color:#dc3545;border:none;background:none;width:100%;font-family:inherit;transition:all 0.2s; }
+        .btn-logout:hover { background:#fff0f0; }
+
+        /* ═══ TOPBAR ═══ */
+        .topbar { background:rgba(255,255,255,0.97);padding:0 1.5rem;height:58px;box-shadow:0 2px 12px rgba(0,0,0,0.12);display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100; }
+        .hamburger { width:36px;height:36px;border-radius:8px;background:#f5f6ff;border:1.5px solid #e0e3ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all 0.2s;flex-shrink:0; }
+        .hamburger:hover { background:#667eea; }
+        .hamburger:hover span { background:white; }
+        .hamburger span { display:block;width:18px;height:2px;background:#667eea;border-radius:2px;transition:all 0.2s; }
+        .topbar-brand { font-size:1.1rem;font-weight:700;color:#667eea;flex:1; }
+        .topbar-avatar { width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;cursor:pointer;border:2px solid #667eea;transition:all 0.2s;overflow:hidden; }
+        .topbar-avatar:hover { box-shadow:0 0 0 3px rgba(102,126,234,0.25); }
+        .topbar-avatar img { width:100%;height:100%;object-fit:cover;display:none; }
+        .topbar-avatar.has-photo img { display:block; }
+        .topbar-avatar.has-photo span { display:none; }
+
+        /* ═══ LAYOUT ═══ */
+        .container { max-width:1200px;margin:0 auto;padding:1.75rem 1.5rem; }
+        .page { display:none;animation:fadeIn 0.3s ease; }
+        .page.active { display:block; }
+        .page-title { color:white;font-size:1.35rem;font-weight:700;margin-bottom:1.25rem;text-shadow:0 1px 4px rgba(0,0,0,0.15); }
+
+        /* ═══ CARDS ═══ */
+        .section-card { background:white;padding:1.75rem 2rem;border-radius:14px;margin-bottom:1.75rem;box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+        .inner-card   { background:white;padding:1.4rem;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.07); }
+        .inner-title  { font-size:0.82rem;font-weight:700;color:#555;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:1rem; }
+        .section-hdr  { display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem; }
+        .section-hdr h2 { color:#222;font-size:1.1rem; }
+
+        /* ═══ LOADING SCREEN ═══ */
+        .loading-card { background:white;border-radius:14px;padding:3rem 2rem;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,0.08); }
+        .spinner { width:48px;height:48px;border:5px solid #e0e0e0;border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1.25rem; }
+        .load-step { font-size:0.82rem;color:#999;margin-top:0.4rem; }
+        .load-step.done  { color:#4caf50; }
+        .load-step.fail  { color:#f44336; }
+        .load-step.active{ color:#667eea;font-weight:600; }
+
+        /* ═══ SERVER ERROR CARD ═══ */
+        .server-err-card { background:white;border-radius:14px;padding:2.5rem 2rem;box-shadow:0 4px 18px rgba(0,0,0,0.08);margin-bottom:1.5rem; }
+        .server-err-icon { font-size:3rem;margin-bottom:1rem; }
+        .server-err-title{ font-size:1.2rem;font-weight:700;color:#c62828;margin-bottom:0.5rem; }
+        .server-err-msg  { color:#555;font-size:0.88rem;line-height:1.6;margin-bottom:1.25rem; }
+        .err-step-list   { list-style:none;margin-bottom:1.25rem; }
+        .err-step-list li{ padding:0.5rem 0.75rem;background:#f8f9ff;border-left:3px solid #667eea;margin-bottom:0.5rem;border-radius:0 6px 6px 0;font-size:0.85rem;color:#333; }
+        .err-step-list li code { background:#e8ecff;padding:1px 5px;border-radius:3px;font-size:0.82rem;color:#667eea; }
+        .err-btn-row     { display:flex;gap:0.75rem;flex-wrap:wrap; }
+        .err-btn         { flex:1;min-width:140px;padding:0.7rem 1.25rem;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s; }
+        .err-btn.primary { background:#667eea;color:white; }
+        .err-btn.primary:hover { background:#764ba2; }
+        .err-btn.secondary { background:#f5f5f5;color:#333;border:1px solid #ddd; }
+        .err-btn.secondary:hover { background:#eee; }
+        .err-btn.danger   { background:#f44336;color:white; }
+        .err-btn.danger:hover { background:#e53935; }
+        .port-input-row  { display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center; }
+        .port-input      { flex:1;padding:0.6rem 0.85rem;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit; }
+        .port-input:focus{ outline:none;border-color:#667eea; }
+        .port-label      { font-size:0.82rem;color:#555;font-weight:600;white-space:nowrap; }
+
+        /* ═══ WELCOME ═══ */
+        .welcome-section { background:white;padding:1.75rem 2rem;border-radius:14px;margin-bottom:1.75rem;box-shadow:0 4px 18px rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center; }
+        .welcome-info h1 { color:#222;margin-bottom:0.3rem;font-size:1.5rem; }
+        .welcome-info p  { color:#666;font-size:0.9rem; }
+        .completion-circle { width:76px;height:76px;border-radius:50%;background:conic-gradient(#667eea var(--pct,0%),#e8e8e8 0);display:flex;align-items:center;justify-content:center;margin:0 auto 0.4rem;position:relative; }
+        .completion-circle::before { content:attr(data-label);position:absolute;width:60px;height:60px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:#667eea; }
+        .completion-text { color:#888;font-size:0.82rem;text-align:center; }
+
+        /* ═══ STATS ═══ */
+        .stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;margin-bottom:1.75rem; }
+        .stat-card { background:white;padding:1.4rem;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,0.08);display:flex;align-items:center;gap:1rem;transition:transform 0.2s; }
+        .stat-card:hover { transform:translateY(-2px); }
+        .stat-icon { width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0; }
+        .stat-icon.blue   { background:#e3f2fd; }
+        .stat-icon.green  { background:#e8f5e9; }
+        .stat-icon.orange { background:#fff3e0; }
+        .stat-icon.purple { background:#f3e5f5; }
+        .stat-info h3 { font-size:1.8rem;color:#222;margin-bottom:0.2rem; }
+        .stat-info p  { color:#777;font-size:0.85rem; }
+        .stat-info small { font-size:0.72rem;color:#aaa; }
+
+        /* ═══ FILTER TABS ═══ */
+        .filter-tabs { display:flex;gap:0.4rem;flex-wrap:wrap; }
+        .filter-tab { padding:0.4rem 0.9rem;border:none;background:#f0f0f0;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.2s;font-family:inherit; }
+        .filter-tab.active { background:#667eea;color:white; }
+        .refresh-btn { padding:0.4rem 1rem;border:2px solid #667eea;background:white;color:#667eea;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;font-family:inherit;transition:all 0.2s; }
+        .refresh-btn:hover { background:#667eea;color:white; }
+
+        /* ═══ REQUEST CARDS ═══ */
+        .request-card { border:2px solid #eee;border-radius:12px;padding:1.25rem;margin-bottom:1rem;transition:all 0.2s; }
+        .request-card:hover { border-color:#667eea;box-shadow:0 4px 15px rgba(102,126,234,0.1); }
+        .request-card.is-new { border-color:#667eea44;background:#f8f9ff; }
+        .request-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem; }
+        .customer-info  { display:flex;align-items:center;gap:0.9rem; }
+        .customer-avatar { width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0; }
+        .customer-details h4 { color:#222;margin-bottom:0.2rem; }
+        .customer-details p  { color:#777;font-size:0.85rem; }
+        .request-status   { padding:0.35rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:600;white-space:nowrap; }
+        .status-pending   { background:#fff3cd;color:#856404; }
+        .status-confirmed { background:#d4edda;color:#155724; }
+        .status-completed { background:#d1ecf1;color:#0c5460; }
+        .status-cancelled { background:#fde8e8;color:#922; }
+        .request-details  { margin:0.75rem 0;padding:0.85rem 1rem;background:#f8f9fa;border-radius:8px; }
+        .detail-row { display:flex;flex-wrap:wrap;gap:1.25rem;color:#666;font-size:0.85rem;margin-bottom:0.4rem; }
+        .detail-row:last-child { margin-bottom:0; }
+        .request-description { color:#666;line-height:1.6;margin:0.75rem 0;font-size:0.9rem; }
+        .request-actions { display:flex;gap:0.75rem;padding-top:0.9rem;border-top:1px solid #eee;flex-wrap:wrap; }
+        .btn { flex:1;min-width:90px;padding:0.65rem;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:0.85rem;font-family:inherit; }
+        .btn-accept  { background:#4caf50;color:white; } .btn-accept:hover  { background:#43a047; }
+        .btn-reject  { background:#f44336;color:white; } .btn-reject:hover  { background:#e53935; }
+        .btn-contact { background:#667eea;color:white; } .btn-contact:hover { background:#764ba2; }
+        .btn-complete{ background:#17a2b8;color:white; } .btn-complete:hover{ background:#138496; }
+        .db-source-tag { font-size:0.72rem;color:#4caf50;font-weight:600;margin-top:0.15rem; }
+        .db-source-tag.local { color:#ff9800; }
+        .new-badge { display:inline-block;background:#ff5252;color:white;font-size:0.68rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:6px;animation:pulse 1.5s infinite; }
+        .empty-state { text-align:center;padding:3rem;color:#aaa; }
+        .empty-state .empty-icon { font-size:3rem;margin-bottom:0.75rem; }
+
+        /* ═══ REPORT ═══ */
+        .report-kpi-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1rem;margin-bottom:1.5rem; }
+        .report-kpi { background:white;border-radius:12px;padding:1.2rem 1.4rem;box-shadow:0 4px 14px rgba(0,0,0,0.07);border-left:4px solid #667eea; }
+        .report-kpi.green  { border-color:#4caf50; } .report-kpi.orange { border-color:#ff9800; }
+        .report-kpi.red    { border-color:#f44336; } .report-kpi.teal   { border-color:#17a2b8; }
+        .report-kpi-val { font-size:1.9rem;font-weight:700;color:#222; }
+        .report-kpi-lbl { font-size:0.78rem;color:#777;margin-top:0.2rem; }
+        .report-two-col { display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem; }
+        .booking-table { width:100%;border-collapse:collapse;font-size:0.82rem; }
+        .booking-table th { padding:0.55rem 0.75rem;text-align:left;color:#888;font-size:0.73rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;border-bottom:2px solid #f0f0f0; }
+        .booking-table td { padding:0.65rem 0.75rem;border-bottom:1px solid #f5f5f5;vertical-align:middle; }
+        .booking-table tr:hover td { background:#fafbff; }
+        .area-list { list-style:none; }
+        .area-item { display:flex;align-items:center;padding:0.6rem 0;border-bottom:1px solid #f5f5f5;font-size:0.85rem; }
+        .area-item:last-child { border-bottom:none; }
+        .area-name { color:#333;font-weight:500;min-width:90px; }
+        .area-bar-wrap { flex:1;margin:0 1rem;height:7px;background:#f0f0f0;border-radius:4px;overflow:hidden; }
+        .area-bar { height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:4px;transition:width 0.8s ease; }
+        .area-count { background:rgba(102,126,234,0.12);color:#667eea;padding:2px 10px;border-radius:12px;font-size:0.75rem;font-weight:700; }
+        .review-card { padding:0.9rem;border-radius:10px;background:#f8f9ff;border:1px solid #e8ebff;margin-bottom:0.75rem; }
+        .review-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem; }
+        .review-stars    { color:#f7971e;font-size:0.85rem;letter-spacing:2px; }
+        .review-customer { font-weight:600;font-size:0.85rem;color:#222; }
+        .review-date     { font-size:0.72rem;color:#aaa; }
+        .review-comment  { font-size:0.83rem;color:#555;line-height:1.5; }
+
+        /* ═══ CHARTS ═══ */
+        .chart-card { background:white;border-radius:14px;padding:1.4rem;box-shadow:0 4px 18px rgba(0,0,0,0.08);margin-bottom:1.25rem; }
+        .chart-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.75rem; }
+        .chart-title    { font-size:0.95rem;font-weight:700;color:#222; }
+        .chart-subtitle { font-size:0.75rem;color:#888;margin-top:2px; }
+        .chart-tab-row  { display:flex;gap:0.4rem; }
+        .chart-tab { padding:0.3rem 0.75rem;border-radius:6px;background:#f0f0f0;border:1px solid #e0e0e0;color:#666;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit; }
+        .chart-tab.active { background:#667eea;border-color:#667eea;color:white; }
+        .chart-wrap { position:relative;height:220px; }
+        .chart-wrap.tall { height:275px; }
+        .chart-two-col { display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem; }
+        .best-worst-grid { display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.1rem; }
+        .bw-card { padding:1rem 1.25rem;border-radius:10px;text-align:center; }
+        .bw-card.best  { background:#e8f5e9;border:1px solid #c8e6c9; }
+        .bw-card.worst { background:#fce4ec;border:1px solid #f8bbd0; }
+        .bw-icon { font-size:1.5rem;margin-bottom:0.3rem; }
+        .bw-day  { font-size:1.05rem;font-weight:700; }
+        .bw-stat { font-size:0.75rem;color:#888;margin-top:0.2rem; }
+        .bw-card.best  .bw-day { color:#2e7d32; }
+        .bw-card.worst .bw-day { color:#c62828; }
+
+        /* ═══ TOAST ═══ */
+        .toast { position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:white;padding:0.75rem 1.5rem;border-radius:30px;font-size:0.9rem;font-weight:600;opacity:0;transition:all 0.3s;z-index:9999;pointer-events:none; }
+        .toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+        .toast.success { background:#4caf50; }
+        .toast.error   { background:#e53935; }
+
+        @media(max-width:768px){
+            .welcome-section { flex-direction:column;gap:1rem;text-align:center; }
+            .stats-grid { grid-template-columns:1fr 1fr; }
+            .report-two-col,.chart-two-col { grid-template-columns:1fr; }
+            .request-header { flex-direction:column;gap:0.75rem; }
+            .request-actions { flex-direction:column; }
+            .container { padding:1.25rem 1rem; }
+        }
+
+        /* Approval status banner */
+.approval-banner {
+    display: none;
+    background: white;
+    border-radius: 14px;
+    padding: 2rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    text-align: center;
+    border: 2px solid #fbbf24;
+}
+.approval-banner.pending  { border-color: #fbbf24; }
+.approval-banner.rejected { border-color: #f44336; }
+.approval-banner .ab-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+.approval-banner .ab-title { font-size: 1.25rem; font-weight: 700; color: #333; margin-bottom: 0.5rem; }
+.approval-banner .ab-msg { color: #666; font-size: 0.9rem; line-height: 1.6; max-width: 480px; margin: 0 auto; }
+.ab-pulse { animation: pulse 2s infinite; display: inline-block; }
+
+
+    </style>
+</head>
+<body>
+
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+        <div class="sb-logo">🔧</div>
+        <div class="sb-brand">Worker <span>Dashboard</span></div>
+    </div>
+    <div class="sb-worker">
+        <div class="sb-avatar" id="sbAvatar"><span id="sbInit">?</span><img id="sbImg" src="" alt=""></div>
+        <div style="overflow:hidden;">
+            <div class="sb-wname" id="sbName">Worker</div>
+            <div class="sb-wcat"  id="sbCat">🔧 Professional</div>
+        </div>
+    </div>
+    <nav class="sb-nav">
+        <div class="nav-sec-lbl">Main</div>
+        <button class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">🏠</span> Dashboard<span class="nav-badge" id="pendingBadge" style="display:none;">0</span></button>
+        <button class="nav-item" onclick="navigate('requests',this)"><span class="nav-icon">📬</span> Service Requests</button>
+        <div class="nav-sec-lbl" style="margin-top:0.9rem;">Analytics</div>
+        <button class="nav-item" onclick="navigate('report',this)"><span class="nav-icon">📊</span> Summary Report</button>
+        <button class="nav-item" onclick="navigate('graphs',this)"><span class="nav-icon">📈</span> Graph Analytics</button>
+        <div class="nav-sec-lbl" style="margin-top:0.9rem;">Account</div>
+        <a class="nav-item" href="worker-profile-edit.html"><span class="nav-icon">✏️</span> Edit Profile</a>
+        <a class="nav-item" href="#" id="viewProfileLink"><span class="nav-icon">👤</span> View Profile</a>
+    </nav>
+    <div class="sb-foot">
+        <div class="sb-db-badge" id="sbDbBadge">🔄 Connecting...</div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+    </div>
+</aside>
+
+<!-- ═══ TOPBAR ═══ -->
+<header class="topbar">
+    <div class="hamburger" onclick="openSidebar()"><span></span><span></span><span></span></div>
+    <div class="topbar-brand">🔧 Worker Dashboard</div>
+    <div class="topbar-avatar" id="topAvatar" onclick="openSidebar()"><span id="topInit">?</span><img id="topImg" src="" alt=""></div>
+</header>
+
+<!-- ═══ PAGES ═══ -->
+<div class="container">
+
+    <!-- LOADING -->
+    <div class="page active" id="page-loading">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <p style="color:#667eea;font-weight:700;font-size:1rem;margin-bottom:0.75rem;" id="loadTitle">Connecting to server...</p>
+            <div id="loadSteps"></div>
+        </div>
+    </div>
+
+
+
+
+    <!-- SERVER ERROR -->
+    <div class="page" id="page-error">
+        <div class="server-err-card" style="text-align:center;">
+            <div class="server-err-icon">🔌</div>
+            <div class="server-err-title">Server Not Reachable</div>
+            <div class="server-err-msg" id="errMsg">Cannot connect to backend server.</div>
+
+            <div style="text-align:left;margin-bottom:1.25rem;">
+                <p style="font-size:0.85rem;font-weight:700;color:#333;margin-bottom:0.6rem;">📋 Try these steps:</p>
+                <ul class="err-step-list">
+                    <li>Open terminal in your backend folder and run: <code>node server.js</code> or <code>npm start</code></li>
+                    <li>Make sure MySQL is running and database <code>localskillfinderdb</code> exists</li>
+                    <li>Check your <code>.env</code> file has correct DB credentials</li>
+                    <li>Try a different port below if your server runs on a different port</li>
+                </ul>
+            </div>
+
+            <div class="port-input-row">
+                <span class="port-label">Server Port:</span>
+                <input type="number" class="port-input" id="portInput" value="5000" placeholder="e.g. 5000, 3000, 8000">
+                <button class="err-btn primary" onclick="retryWithPort()" style="flex:0;white-space:nowrap;">🔁 Try This Port</button>
+            </div>
+
+            <div class="err-btn-row">
+                <button class="err-btn primary" onclick="retryConnect()">🔄 Retry Connection</button>
+                <button class="err-btn secondary" onclick="workOffline()">📄 Work Offline</button>
+                <button class="err-btn danger" onclick="logout()">🔑 Re-Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+
+         <div class="approval-banner" id="approvalBanner">
+        <div class="ab-icon" id="abIcon">⏳</div>
+        <div class="ab-title" id="abTitle">Waiting for Admin Approval</div>
+        <div class="ab-msg" id="abMsg">...</div>
+    </div>
+
+    
+        <div class="welcome-section">
+            <div class="welcome-info">
+                <h1>Welcome back, <span id="wName">Worker</span>! 👋</h1>
+                <p>Service: <strong id="wCat">—</strong> &nbsp;|&nbsp; <span id="wCity">—</span> &nbsp;|&nbsp; 📱 <span id="wPhone">—</span></p>
+            </div>
+            <div style="text-align:center;">
+                <div class="completion-circle" id="completionCircle" data-label="0%"></div>
+                <p class="completion-text">Profile Completed</p>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon blue">📋</div><div class="stat-info"><h3 id="sNew">0</h3><p>New Requests</p></div></div>
+            <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><h3 id="sActive">0</h3><p>Active Jobs</p></div></div>
+            <div class="stat-card"><div class="stat-icon orange">🏁</div><div class="stat-info"><h3 id="sDone">0</h3><p>Completed</p></div></div>
+            <div class="stat-card"><div class="stat-icon purple">📦</div><div class="stat-info"><h3 id="sTotal">0</h3><p>Total Requests</p></div></div>
+        </div>
+        <div class="section-card">
+            <div class="section-hdr">
+                <h2>📬 Service Requests <span id="newBadge" class="new-badge" style="display:none;">NEW</span></h2>
+                <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" onclick="filterReq('all',this,'reqBox')">All</button>
+                        <button class="filter-tab" onclick="filterReq('pending',this,'reqBox')">Pending</button>
+                        <button class="filter-tab" onclick="filterReq('confirmed',this,'reqBox')">Confirmed</button>
+                        <button class="filter-tab" onclick="filterReq('completed',this,'reqBox')">Completed</button>
+                    </div>
+                    <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh</button>
+                </div>
+            </div>
+            <div id="reqBox"></div>
+        </div>
+    </div>
+
+    <!-- SERVICE REQUESTS -->
+    <div class="page" id="page-requests">
+        <p class="page-title">📬 Service Requests</p>
+        <div class="section-card">
+            <div class="filter-tabs" style="margin-bottom:1.25rem;">
+                <button class="filter-tab active" onclick="filterReq('all',this,'reqBox2')">All</button>
+                <button class="filter-tab" onclick="filterReq('pending',this,'reqBox2')">Pending</button>
+                <button class="filter-tab" onclick="filterReq('confirmed',this,'reqBox2')">Confirmed</button>
+                <button class="filter-tab" onclick="filterReq('completed',this,'reqBox2')">Completed</button>
+                <button class="filter-tab" onclick="filterReq('cancelled',this,'reqBox2')">Cancelled</button>
+            </div>
+            <div id="reqBox2"></div>
+        </div>
+    </div>
+
+    <!-- SUMMARY REPORT -->
+    <div class="page" id="page-report">
+        <p class="page-title">📊 Summary Report</p>
+        <div class="report-kpi-grid">
+            <div class="report-kpi"><div class="report-kpi-val" id="rTotal">0</div><div class="report-kpi-lbl">Total Bookings</div></div>
+            <div class="report-kpi orange"><div class="report-kpi-val" id="rPending">0</div><div class="report-kpi-lbl">Pending</div></div>
+            <div class="report-kpi teal"><div class="report-kpi-val" id="rConfirmed">0</div><div class="report-kpi-lbl">Confirmed</div></div>
+            <div class="report-kpi green"><div class="report-kpi-val" id="rCompleted">0</div><div class="report-kpi-lbl">Completed</div></div>
+            <div class="report-kpi red"><div class="report-kpi-val" id="rCancelled">0</div><div class="report-kpi-lbl">Rejected</div></div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:1.5rem;">
+            <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-info"><h3 id="rRevenue">₹0</h3><p>Est. Revenue</p><small id="rAvgPay">avg ₹0 / job</small></div></div>
+            <div class="stat-card"><div class="stat-icon orange">⭐</div><div class="stat-info"><h3 id="rRating">—</h3><p>Avg Rating</p><small id="rRevCnt">0 reviews</small></div></div>
+            <div class="stat-card"><div class="stat-icon purple">📈</div><div class="stat-info"><h3 id="rAcceptRate">0%</h3><p>Accept Rate</p><small id="rAccSub">0 accepted</small></div></div>
+        </div>
+        <div class="report-two-col">
+            <div class="inner-card">
+                <div class="inner-title">📋 All Bookings Detail</div>
+                <div style="overflow-x:auto;max-height:300px;overflow-y:auto;">
+                    <table class="booking-table">
+                        <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Status</th><th>Area</th></tr></thead>
+                        <tbody id="bookingTbody"><tr><td colspan="5" style="text-align:center;color:#ccc;padding:2rem;">No bookings</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="inner-card">
+                <div class="inner-title">📍 Bookings by Area</div>
+                <ul class="area-list" id="areaList"><li style="text-align:center;color:#ccc;padding:2rem;font-size:0.85rem;">No data yet</li></ul>
+            </div>
+        </div>
+        <div class="section-card">
+            <div class="section-hdr"><h2>⭐ Customer Reviews</h2></div>
+            <div id="reviewsBox"><div class="empty-state"><div class="empty-icon">💬</div><p>No reviews yet</p></div></div>
+        </div>
+    </div>
+
+    <!-- GRAPH ANALYTICS -->
+    <div class="page" id="page-graphs">
+        <p class="page-title">📈 Graph Analytics</p>
+        <div class="chart-card">
+            <div class="chart-header">
+                <div><div class="chart-title">📅 Bookings Over Time</div><div class="chart-subtitle">Track your booking frequency</div></div>
+                <div class="chart-tab-row"><button class="chart-tab active" onclick="switchTime('week',this)">Week</button><button class="chart-tab" onclick="switchTime('month',this)">Month</button></div>
+            </div>
+            <div class="chart-wrap tall"><canvas id="timeChart"></canvas></div>
+        </div>
+        <div class="chart-two-col">
+            <div class="chart-card"><div class="chart-header"><div><div class="chart-title">💰 Payment Trend</div><div class="chart-subtitle">Monthly estimated revenue</div></div></div><div class="chart-wrap"><canvas id="payChart"></canvas></div></div>
+            <div class="chart-card"><div class="chart-header"><div><div class="chart-title">📊 Gain vs Loss</div><div class="chart-subtitle">Completed vs Cancelled</div></div></div><div class="chart-wrap"><canvas id="gainChart"></canvas></div></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-header"><div><div class="chart-title">📆 Day of Week Analysis</div><div class="chart-subtitle">Which day gets the most bookings?</div></div></div>
+            <div class="chart-wrap"><canvas id="dayChart"></canvas></div>
+            <div class="best-worst-grid">
+                <div class="bw-card best"><div class="bw-icon">🏆</div><div class="bw-day" id="bestDay">—</div><div class="bw-stat" id="bestStat">0 bookings</div></div>
+                <div class="bw-card worst"><div class="bw-icon">📉</div><div class="bw-day" id="worstDay">—</div><div class="bw-stat" id="worstStat">0 bookings</div></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG — ports to auto-try
+═══════════════════════════════════════ */
+var PORTS_TO_TRY = [5000, 3000, 8000, 4000, 8080];
+var API_URL      = '';   // Will be set after discovery
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+var allRequests = [], workerData = {}, reviewsData = [];
+var fromDb = false, activePage = 'dashboard', timeMode = 'week';
+var charts = {}, curFilter = { reqBox:'all', reqBox2:'all' };
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════ */
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sbOverlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sbOverlay').classList.remove('show'); }
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function navigate(page, btn) {
+    closeSidebar();
+    document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('page-'+page).classList.add('active');
+    activePage = page;
+    if (page === 'report')   renderReport();
+    if (page === 'graphs')   setTimeout(renderGraphs, 80);
+    if (page === 'requests') renderTo('reqBox2', allRequests, 'reqBox2');
+}
+
+/* ═══════════════════════════════════════
+   PAGE LOAD
+═══════════════════════════════════════ */
+window.addEventListener('load', function() {
+    var token = localStorage.getItem('token');
+    if (!token) { window.location.href = '../login.html'; return; }
+    var user = safeUser();
+    if (user.role && user.role !== 'worker') { window.location.href = '../login.html'; return; }
+
+    // Show stored worker data immediately in sidebar
+    renderNavbarFromStorage();
+    loadDashboard();
+});
+
+/* ═══════════════════════════════════════
+   SMART SERVER DISCOVERY
+═══════════════════════════════════════ */
+function addStep(id, text, status) {
+    var steps = document.getElementById('loadSteps');
+    var div = document.createElement('div');
+    div.className = 'load-step ' + (status||'active');
+    div.id = 'step-' + id;
+    div.textContent = text;
+    steps.appendChild(div);
+}
+function updateStep(id, text, status) {
+    var el = document.getElementById('step-' + id);
+    if (el) { el.textContent = text; el.className = 'load-step ' + status; }
+}
+
+async function discoverServer() {
+    // Check if we have a saved working port
+    var savedPort = localStorage.getItem('workingPort');
+    if (savedPort) {
+        PORTS_TO_TRY.unshift(parseInt(savedPort));
+        // Remove duplicates
+        PORTS_TO_TRY = PORTS_TO_TRY.filter(function(v,i,a){ return a.indexOf(v) === i; });
+    }
+
+    addStep('discover', '🔍 Finding server...', 'active');
+
+    for (var i = 0; i < PORTS_TO_TRY.length; i++) {
+        var port = PORTS_TO_TRY[i];
+        var url  = 'http://localhost:' + port + '/api';
+        updateStep('discover', '🔍 Trying port ' + port + '...', 'active');
+        try {
+            var res = await fetch(url + '/worker/profile', {
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token')||'') },
+                signal: AbortSignal.timeout(3000)
+            });
+            if (res.status === 200 || res.status === 401) {
+                // Server is reachable (401 = token issue, not server issue)
+                API_URL = url;
+                localStorage.setItem('workingPort', port);
+                updateStep('discover', '✅ Server found on port ' + port, 'done');
+                return true;
+            }
+        } catch(e) {
+            // This port failed, try next
+        }
+    }
+    updateStep('discover', '❌ Server not found on any port', 'fail');
+    return false;
+}
+
+function renderApprovalBanner() {
+    var u      = Object.keys(workerData).length > 1 ? workerData : safeUser();
+    var status = u.status || 'pending';
+    var banner = document.getElementById('approvalBanner');
+
+    if (status === 'approved') {
+        banner.style.display = 'none';
+        return;
+    }
+
+    banner.style.display = 'block';
+
+    if (status === 'rejected') {
+        banner.className = 'approval-banner rejected';
+        document.getElementById('abIcon').textContent  = '❌';
+        document.getElementById('abTitle').textContent = 'Account Not Approved';
+        document.getElementById('abMsg').textContent   =
+            'Your profile was not approved by the admin. Please contact support or update your profile details and re-register.';
+    } else {
+        banner.className = 'approval-banner pending';
+        document.getElementById('abIcon').innerHTML  = '<span class="ab-pulse">⏳</span>';
+        document.getElementById('abTitle').textContent = 'Waiting for Admin Approval';
+        document.getElementById('abMsg').textContent   =
+            'Your profile is under review. Once an admin approves it, you\'ll appear in search results and start receiving booking requests.';
+    }
+}
+
+async function loadDashboard() {
+    showPage('loading');
+    document.getElementById('loadSteps').innerHTML = '';
+    document.getElementById('loadTitle').textContent = 'Connecting to server...';
+
+    var token = localStorage.getItem('token');
+
+    var serverFound = await discoverServer();
+    if (!serverFound) {
+        workerData = safeUser();
+        renderNavbar();
+        renderWelcome();
+        renderApprovalBanner();
+        updateStats();
+        renderTo('reqBox', allRequests, 'reqBox');
+        checkNewBadge();
+        showPage('dashboard');
+        document.getElementById('errMsg').innerHTML =
+            'Could not reach server on ports <strong>' + PORTS_TO_TRY.join(', ') + '</strong>.<br>' +
+            'Make sure your Node.js backend is running.';
+        return;
+    }
+
+    addStep('profile', '👤 Loading worker profile...', 'active');
+    try {
+        var pRes  = await fetch(API_URL + '/worker/profile', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            signal: AbortSignal.timeout(5000)
+        });
+        var pData = await pRes.json();
+
+        if (pData.success && pData.worker) {
+            workerData = pData.worker;
+            fromDb = true;
+            var updUser = Object.assign({}, safeUser(), workerData, { role: 'worker' });
+            localStorage.setItem('user', JSON.stringify(updUser));
+            setSbDb('connected');
+            updateStep('profile', '✅ Profile loaded: ' + (workerData.full_name||'Worker'), 'done');
+        } else {
+            workerData = safeUser();
+            updateStep('profile', '⚠️ Profile: ' + (pData.message||'Using local data'), 'fail');
+        }
+    } catch(e) {
+        workerData = safeUser();
+        updateStep('profile', '⚠️ Profile load failed — using stored data', 'fail');
+    }
+
+    addStep('bookings', '📬 Loading bookings...', 'active');
+    try {
+        var bRes  = await fetch(API_URL + '/booking/worker', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            signal: AbortSignal.timeout(5000)
+        });
+        var bData = await bRes.json();
+
+        if (bData.success) {
+            allRequests = bData.bookings || [];
+            fromDb = true;
+            updateStep('bookings', '✅ ' + allRequests.length + ' booking(s) loaded', 'done');
+        } else {
+            var msg = bData.message || '';
+            updateStep('bookings', '⚠️ ' + msg, 'fail');
+            if (msg.toLowerCase().indexOf('role') !== -1 || msg.toLowerCase().indexOf('denied') !== -1) {
+                addStep('rolefix', '🔧 Fixing role issue...', 'active');
+                var fixResult = await tryFixRole(token);
+                if (fixResult) {
+                    updateStep('rolefix', '✅ Role fixed! Reloading...', 'done');
+                    setTimeout(loadDashboard, 800);
+                    return;
+                } else {
+                    updateStep('rolefix', '⚠️ Please re-login to fix this', 'fail');
+                }
+            }
+            loadLocalBookings();
+        }
+    } catch(e) {
+        updateStep('bookings', '⚠️ Bookings load failed — using local data', 'fail');
+        loadLocalBookings();
+    }
+
+    try {
+        var vRes  = await fetch(API_URL + '/reviews/received', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            signal: AbortSignal.timeout(4000)
+        });
+        var vData = await vRes.json();
+        reviewsData = vData.success ? (vData.reviews || []) : [];
+    } catch(e) { reviewsData = []; }
+
+    // Render everything
+    renderNavbar();
+    renderWelcome();
+    renderApprovalBanner();  // ✅ இங்க add பண்ணாச்சு
+    updateStats();
+    renderTo('reqBox', allRequests, 'reqBox');
+    checkNewBadge();
+    showPage('dashboard');
+    setInterval(silentRefresh, 20000);
+}
+
+function loadLocalBookings() {
+    var user  = safeUser();
+    var email = workerData.email || user.email || '';
+    var key   = 'workerRequests_' + (email || workerData.id || user.id || 'unknown');
+    try { allRequests = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { allRequests = []; }
+    if (allRequests.length === 0) {
+        try { allRequests = JSON.parse(localStorage.getItem('myBookings') || '[]'); } catch(e) {}
+    }
+    setSbDb('warn');
+}
+
+/* ─── Try to fix role by re-checking worker table ─── */
+async function tryFixRole(token) {
+    try {
+        // Check if the token belongs to a valid worker
+        var pRes  = await fetch(API_URL + '/worker/profile', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var pData = await pRes.json();
+        if (pData.success && pData.worker) {
+            // Worker is valid — the issue is the role field in the token
+            // We cannot reissue a token from frontend, so fix localStorage
+            var u = safeUser();
+            u.role = 'worker';
+            localStorage.setItem('user', JSON.stringify(u));
+            return true;
+        }
+    } catch(e) {}
+    return false;
+}
+
+/* ─── Retry handlers from error page ─── */
+function retryConnect() { loadDashboard(); }
+function workOffline() {
+    workerData = safeUser();
+    setSbDb('warn');
+    loadLocalBookings();
+    renderNavbar(); renderWelcome(); renderApprovalBanner(); updateStats();
+    renderTo('reqBox', allRequests, 'reqBox'); checkNewBadge();
+    showPage('dashboard');
+    showToast('📄 Working with local data', '');
+}
+function retryWithPort() {
+    var port = parseInt(document.getElementById('portInput').value);
+    if (!port || port < 1 || port > 65535) { alert('Enter a valid port number (1-65535)'); return; }
+    localStorage.setItem('workingPort', port);
+    PORTS_TO_TRY = [port, 5000, 3000, 8000].filter(function(v,i,a){ return a.indexOf(v)===i; });
+    loadDashboard();
+}
+
+async function silentRefresh() {
+    if (!API_URL) return;
+    var token = localStorage.getItem('token');
+    try {
+        var r = await fetch(API_URL + '/booking/worker', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            signal: AbortSignal.timeout(4000)
+        });
+        var d = await r.json();
+        if (d.success) {
+            allRequests = d.bookings || [];
+            updateStats(); checkNewBadge();
+            renderTo('reqBox', allRequests, 'reqBox');
+            if (activePage === 'requests') renderTo('reqBox2', allRequests, 'reqBox2');
+        }
+    } catch(e) {}
+}
+
+/* ═══════════════════════════════════════
+   RENDER NAVBAR (from localStorage first, then DB)
+═══════════════════════════════════════ */
+function renderNavbarFromStorage() {
+    var u = safeUser();
+    var name = u.full_name || u.name || 'Worker';
+    document.getElementById('sbInit').textContent  = name.charAt(0).toUpperCase();
+    document.getElementById('topInit').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('sbName').textContent  = name;
+    document.getElementById('sbCat').textContent   = '🔧 ' + (u.category || 'Professional');
+}
+
+function renderNavbar() {
+    var u     = Object.keys(workerData).length > 1 ? workerData : safeUser();
+    var name  = u.full_name || u.name || 'Worker';
+    var photo = u.profile_photo || u.profilePhoto || '';
+    var init  = name.charAt(0).toUpperCase();
+    document.getElementById('sbInit').textContent  = init;
+    document.getElementById('topInit').textContent = init;
+    document.getElementById('sbName').textContent  = name;
+    document.getElementById('sbCat').textContent   = '🔧 ' + (u.category || 'Professional');
+    if (photo) {
+        ['sbImg','topImg'].forEach(function(id){ var el=document.getElementById(id); if(el){el.src=photo;el.style.display='block';} });
+        ['sbAvatar','topAvatar'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.add('has-photo'); });
+    }
+    if (u.id) document.getElementById('viewProfileLink').href = '../user/worker-profile-view.html?id=' + u.id;
+}
+
+function renderWelcome() {
+    var u = Object.keys(workerData).length > 1 ? workerData : safeUser();
+    var name = u.full_name || u.name || 'Worker';
+    document.getElementById('wName').textContent  = name.split(' ')[0];
+    document.getElementById('wCat').textContent   = u.category  || '—';
+    document.getElementById('wCity').textContent  = u.city      || '—';
+    document.getElementById('wPhone').textContent = u.phone     || '—';
+    var fields = ['full_name','phone','email','address','category','experience','skills','description','profile_photo'];
+    var filled = fields.filter(function(f){ return u[f] && String(u[f]).trim() !== ''; }).length;
+    if (u.work_images && u.work_images.length > 0) filled++;
+    var pct = Math.round((filled / (fields.length + 1)) * 100);
+    var c = document.getElementById('completionCircle');
+    c.style.setProperty('--pct', pct + '%');
+    c.setAttribute('data-label', pct + '%');
+}
+
+function setSbDb(state) {
+    var el = document.getElementById('sbDbBadge');
+    if (state === 'connected') { el.textContent='🗄️ DB Connected'; el.className='sb-db-badge'; }
+    else if (state === 'warn') { el.textContent='📄 Local Data';   el.className='sb-db-badge warn'; }
+    else                       { el.textContent='❌ DB Error';     el.className='sb-db-badge err'; }
+}
+function updateStats() {
+    document.getElementById('sNew').textContent    = cnt('pending');
+    document.getElementById('sActive').textContent = cnt('confirmed');
+    document.getElementById('sDone').textContent   = cnt('completed');
+    document.getElementById('sTotal').textContent  = allRequests.length;
+}
+function cnt(st){ return allRequests.filter(function(r){return(r.status||'pending')===st;}).length; }
+function checkNewBadge() {
+    var p=cnt('pending');
+    var nb=document.getElementById('newBadge'); nb.textContent=p+' NEW'; nb.style.display=p>0?'inline-block':'none';
+    var pb=document.getElementById('pendingBadge'); pb.textContent=p; pb.style.display=p>0?'inline-block':'none';
+}
+
+/* ═══════════════════════════════════════
+   RENDER REQUESTS
+═══════════════════════════════════════ */
+function filterReq(status, btn, boxId) {
+    var wrap = document.getElementById(boxId).closest('.section-card') || document.getElementById(boxId).parentElement;
+    wrap.querySelectorAll('.filter-tab').forEach(function(t){ t.classList.remove('active'); });
+    btn.classList.add('active');
+    curFilter[boxId] = status;
+    renderTo(boxId, allRequests, boxId);
+}
+function renderTo(boxId, list, fkey) {
+    var f        = curFilter[fkey] || 'all';
+    var filtered = f === 'all' ? list : list.filter(function(r){ return (r.status||'pending') === f; });
+    var c        = document.getElementById(boxId);
+    if (!filtered || filtered.length === 0) {
+        c.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No service requests found.</p></div>';
+        return;
+    }
+    c.innerHTML = '';
+    filtered.forEach(function(req) {
+        var idx       = allRequests.indexOf(req);
+        var status    = req.status || 'pending';
+        var custName  = req.customer_name  || req.contactName  || 'Customer';
+        var custPhone = req.customer_phone || req.contactPhone  || '';
+        var address   = req.address   || '—', landmark = req.landmark || '';
+        var desc      = req.description || '', notes = req.notes || '';
+        var urgency   = req.urgency || 'normal';
+        var service   = req.worker_category || req.serviceType || workerData.category || safeUser().category || '—';
+        var urgEmoji  = { normal:'🟢', urgent:'🟡', emergency:'🔴' }[urgency] || '🟢';
+        var srcTag    = fromDb
+            ? '<div class="db-source-tag">🗄️ DB · Booking #'+(req.id||'')+'</div>'
+            : '<div class="db-source-tag local">📄 Local Data</div>';
+ 
+        // ── AMOUNT BLOCK ──
+        var amountHtml = '';
+        var custAmt    = parseFloat(req.customer_amount);
+        var amtStatus  = req.amount_status || 'pending';
+ 
+        if (!isNaN(custAmt) && custAmt > 0) {
+            var amtBadge = '';
+            var checkboxHtml = '';
+ 
+            if (amtStatus === 'accepted') {
+                amtBadge = '<span style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:700;">✅ Amount Accepted</span>';
+            } else if (amtStatus === 'negotiating') {
+                amtBadge = '<span style="background:#fff3cd;color:#856404;border:1px solid #fde68a;border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:700;">💬 Negotiating</span>';
+            } else {
+                // pending — show checkbox to accept
+                checkboxHtml =
+                    '<div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.6rem;">' +
+                    '<input type="checkbox" id="amtChk_'+idx+'" style="width:18px;height:18px;cursor:pointer;" onchange="handleAmountAccept('+idx+',this)">' +
+                    '<label for="amtChk_'+idx+'" style="cursor:pointer;font-size:0.88rem;color:#065f46;font-weight:600;">Accept this amount &amp; proceed</label>' +
+                    '</div>';
+            }
+ 
+            amountHtml =
+                '<div style="background:linear-gradient(135deg,#f0fff4,#f0f4ff);border:2px solid #6ee7b7;border-radius:10px;padding:0.85rem 1rem;margin:0.75rem 0;">' +
+                '<div style="font-size:0.75rem;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">💰 Customer Offered Amount</div>' +
+                '<div style="font-size:1.5rem;font-weight:800;color:#1b5e20;">₹' + custAmt.toLocaleString('en-IN') + '</div>' +
+                amtBadge +
+                checkboxHtml +
+                '</div>';
+        }
+ 
+        var actHTML = '';
+        if (status === 'pending') {
+            actHTML = '<button class="btn btn-accept" onclick="updateStatus('+idx+',\'confirmed\')">✅ Accept</button>' +
+                      '<button class="btn btn-reject" onclick="updateStatus('+idx+',\'cancelled\')">❌ Reject</button>' +
+                      (custPhone ? '<button class="btn btn-contact" onclick="window.location.href=\'tel:'+custPhone+'\'">📞 Call</button>' : '');
+        } else if (status === 'confirmed') {
+            actHTML = '<button class="btn btn-complete" onclick="updateStatus('+idx+',\'completed\')">✅ Mark Complete</button>' +
+                      (custPhone ? '<button class="btn btn-contact" onclick="window.location.href=\'tel:'+custPhone+'\'">📞 Call</button>' : '');
+        } else {
+            actHTML = '<span style="color:#aaa;font-size:0.85rem;">No further action needed.</span>';
+        }
+ 
+        var card = document.createElement('div');
+        card.className = 'request-card' + (status === 'pending' ? ' is-new' : '');
+        card.id = 'reqcard_' + idx;
+        card.innerHTML =
+            '<div class="request-header"><div class="customer-info">' +
+            '<div class="customer-avatar">'+esc(custName.charAt(0).toUpperCase())+'</div>' +
+            '<div class="customer-details"><h4>'+esc(custName)+'</h4><p>📱 '+esc(custPhone||'—')+'</p>'+srcTag+'</div>' +
+            '</div><div class="request-status status-'+status+'">'+status.charAt(0).toUpperCase()+status.slice(1)+'</div></div>' +
+            '<div class="request-details">' +
+            '<div class="detail-row"><span>🔧 <strong>Service:</strong> '+esc(service)+'</span>' +
+            '<span>📅 <strong>Date:</strong> '+fmtDate(req.preferred_date||req.preferredDate||'')+'</span>' +
+            '<span>⏰ <strong>Time:</strong> '+fmtTime(req.preferred_time||req.preferredTime||'')+'</span></div>' +
+            '<div class="detail-row"><span>📍 <strong>Address:</strong> '+esc(address)+'</span>' +
+            (landmark ? '<span>🏷️ <strong>Landmark:</strong> '+esc(landmark)+'</span>' : '') + '</div>' +
+            '<div class="detail-row"><span>'+urgEmoji+' <strong>Urgency:</strong> '+urgency.charAt(0).toUpperCase()+urgency.slice(1)+'</span></div>' +
+            '</div>' +
+            amountHtml +
+            (desc  ? '<div class="request-description"><strong>Description:</strong> '+esc(desc)+'</div>'  : '') +
+            (notes ? '<div class="request-description"><strong>Special Notes:</strong> '+esc(notes)+'</div>' : '') +
+            '<div class="request-actions">'+actHTML+'</div>';
+        c.appendChild(card);
+    });
+}
+ 
+/* ── NEW function: handle amount accept checkbox ── */
+async function handleAmountAccept(idx, checkbox) {
+    var req      = allRequests[idx];
+    var token    = localStorage.getItem('token');
+    var newStatus = checkbox.checked ? 'accepted' : 'pending';
+    checkbox.disabled = true;
+ 
+    // Update locally first
+    allRequests[idx].amount_status = newStatus;
+ 
+    // Save to DB
+    if (fromDb && token && req.id && API_URL) {
+        try {
+            var r = await fetch(API_URL + '/booking/amount-accept', {
+                method: 'PUT',
+                headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+                body: JSON.stringify({ booking_id: req.id, amount_status: newStatus })
+            });
+            var d = await r.json();
+            if (d.success) {
+                showToast('✅ Amount accepted! Customer will be notified.', 'success');
+            } else {
+                showToast('⚠️ ' + (d.message||'Update failed'), 'error');
+                allRequests[idx].amount_status = 'pending';
+            }
+        } catch(e) {
+            showToast('⚠️ Cannot reach server', 'error');
+            allRequests[idx].amount_status = 'pending';
+        }
+    } else {
+        showToast('📄 Amount accepted locally', '');
+    }
+ 
+    // Re-render to show updated badge
+    renderTo('reqBox',  allRequests, 'reqBox');
+    renderTo('reqBox2', allRequests, 'reqBox2');
+}
+
+async function updateStatus(idx, newStatus) {
+    var labels = { confirmed:'Accept', cancelled:'Reject', completed:'Mark as Completed' };
+    if (!confirm(labels[newStatus] + ' this request?')) return;
+    var token   = localStorage.getItem('token');
+    var booking = allRequests[idx];
+    var saved   = false;
+    if (fromDb && token && booking.id && API_URL) {
+        try {
+            var r = await fetch(API_URL + '/booking/status', {
+                method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+                body: JSON.stringify({ booking_id: booking.id, status: newStatus })
+            });
+            var d = await r.json();
+            if (d.success) saved = true;
+        } catch(e) {}
+    }
+    allRequests[idx].status = newStatus;
+    try {
+        var mb = JSON.parse(localStorage.getItem('myBookings') || '[]');
+        var bi = mb.findIndex(function(b){ return String(b.id) === String(booking.id); });
+        if (bi >= 0) { mb[bi].status = newStatus; localStorage.setItem('myBookings', JSON.stringify(mb)); }
+    } catch(e) {}
+    updateStats(); checkNewBadge();
+    renderTo('reqBox', allRequests, 'reqBox');
+    renderTo('reqBox2', allRequests, 'reqBox2');
+    showToast(saved ? '🗄️ Status updated in DB!' : '📄 Status updated locally', saved ? 'success' : '');
+}
+
+/* ═══════════════════════════════════════
+   REPORT
+═══════════════════════════════════════ */
+function renderReport() {
+    var total=allRequests.length, pending=cnt('pending'), confirmed=cnt('confirmed'), completed=cnt('completed'), cancelled=cnt('cancelled');
+    document.getElementById('rTotal').textContent=total; document.getElementById('rPending').textContent=pending;
+    document.getElementById('rConfirmed').textContent=confirmed; document.getElementById('rCompleted').textContent=completed;
+    document.getElementById('rCancelled').textContent=cancelled;
+    var u=Object.keys(workerData).length>1?workerData:safeUser();
+    var minP=parseFloat(u.min_price)||0, maxP=parseFloat(u.max_price)||0, avgP=(minP+maxP)/2||500;
+    document.getElementById('rRevenue').textContent='₹'+Math.round(completed*avgP).toLocaleString('en-IN');
+    document.getElementById('rAvgPay').textContent='avg ₹'+Math.round(avgP)+' / job';
+    var accepted=confirmed+completed;
+    document.getElementById('rAcceptRate').textContent=total>0?Math.round((accepted/total)*100)+'%':'0%';
+    document.getElementById('rAccSub').textContent=accepted+' accepted';
+    if(reviewsData&&reviewsData.length>0){var avg=reviewsData.reduce(function(s,r){return s+parseFloat(r.rating||0);},0)/reviewsData.length;document.getElementById('rRating').textContent=avg.toFixed(1)+' ⭐';document.getElementById('rRevCnt').textContent=reviewsData.length+' reviews';}
+    else{document.getElementById('rRating').textContent='—';document.getElementById('rRevCnt').textContent='0 reviews';}
+    var tbody=document.getElementById('bookingTbody');
+    if(allRequests.length===0){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#ccc;padding:2rem;">No bookings yet</td></tr>';}
+    else{tbody.innerHTML='';allRequests.forEach(function(req,i){var st=req.status||'pending';var tr=document.createElement('tr');tr.innerHTML='<td style="color:#aaa;font-size:0.78rem;">#'+(req.id||i+1)+'</td><td style="font-weight:600;">'+esc(req.customer_name||'—')+'</td><td style="color:#777;">'+fmtDate(req.preferred_date||'')+'</td><td><span class="request-status status-'+st+'" style="font-size:0.72rem;padding:0.2rem 0.65rem;">'+st.charAt(0).toUpperCase()+st.slice(1)+'</span></td><td style="color:#888;font-size:0.8rem;">'+esc(getArea(req.address||''))+'</td>';tbody.appendChild(tr);});}
+    var areaCounts={};allRequests.forEach(function(req){var a=getArea(req.address||'')||'Unknown';areaCounts[a]=(areaCounts[a]||0)+1;});
+    var sorted=Object.keys(areaCounts).sort(function(a,b){return areaCounts[b]-areaCounts[a];});var maxC=sorted.length?areaCounts[sorted[0]]:1;
+    var al=document.getElementById('areaList');
+    if(sorted.length===0){al.innerHTML='<li style="text-align:center;color:#ccc;padding:2rem;font-size:0.85rem;">No area data yet</li>';}
+    else{al.innerHTML='';sorted.slice(0,8).forEach(function(area){var c=areaCounts[area],pct=Math.round((c/maxC)*100);var li=document.createElement('li');li.className='area-item';li.innerHTML='<span class="area-name">📍 '+esc(area)+'</span><div class="area-bar-wrap"><div class="area-bar" style="width:'+pct+'%"></div></div><span class="area-count">'+c+'</span>';al.appendChild(li);});}
+    var rb=document.getElementById('reviewsBox');
+    if(!reviewsData||reviewsData.length===0){rb.innerHTML='<div class="empty-state"><div class="empty-icon">💬</div><p>No reviews yet</p></div>';}
+    else{rb.innerHTML='';reviewsData.forEach(function(rev){var stars='★'.repeat(Math.round(rev.rating||0))+'☆'.repeat(5-Math.round(rev.rating||0));var d=document.createElement('div');d.className='review-card';d.innerHTML='<div class="review-header"><div><div class="review-customer">'+esc(rev.customer_name||'Customer')+'</div><div class="review-date">'+fmtDate(rev.created_at||'')+'</div></div><span class="review-stars">'+stars+'</span></div>'+(rev.comment?'<div class="review-comment">'+esc(rev.comment)+'</div>':'');rb.appendChild(d);});}
+}
+
+/* ═══════════════════════════════════════
+   GRAPHS
+═══════════════════════════════════════ */
+function renderGraphs(){buildTimeChart(timeMode);buildPayChart();buildGainChart();buildDayChart();}
+function switchTime(mode,btn){document.querySelectorAll('.chart-tab-row .chart-tab').forEach(function(t){t.classList.remove('active');});btn.classList.add('active');timeMode=mode;buildTimeChart(mode);}
+function destroyChart(id){if(charts[id]){charts[id].destroy();charts[id]=null;}}
+function buildTimeChart(mode){destroyChart('time');var ctx=document.getElementById('timeChart').getContext('2d');var data=mode==='week'?getWeekData():getMonthData();charts.time=new Chart(ctx,{type:'bar',data:{labels:data.labels,datasets:[{label:'Bookings',data:data.values,backgroundColor:'rgba(102,126,234,0.5)',borderColor:'#667eea',borderWidth:2,borderRadius:6}]},options:cOpts()});}
+function buildPayChart(){destroyChart('pay');var ctx=document.getElementById('payChart').getContext('2d');var data=getMonthData();var u=Object.keys(workerData).length>1?workerData:safeUser();var avgP=((parseFloat(u.min_price)||0)+(parseFloat(u.max_price)||0))/2||500;charts.pay=new Chart(ctx,{type:'line',data:{labels:data.labels,datasets:[{label:'Revenue (₹)',data:data.values.map(function(v){return Math.round(v*avgP);}),borderColor:'#4caf50',backgroundColor:'rgba(76,175,80,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#4caf50',pointRadius:4}]},options:cOpts()});}
+function buildGainChart(){destroyChart('gain');var ctx=document.getElementById('gainChart').getContext('2d');charts.gain=new Chart(ctx,{type:'doughnut',data:{labels:['Completed','Confirmed','Pending','Cancelled'],datasets:[{data:[cnt('completed'),cnt('confirmed'),cnt('pending'),cnt('cancelled')],backgroundColor:['rgba(76,175,80,0.8)','rgba(102,126,234,0.8)','rgba(255,152,0,0.8)','rgba(244,67,54,0.8)'],borderColor:['#4caf50','#667eea','#ff9800','#f44336'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11,family:'Segoe UI'},padding:12,boxWidth:12,boxHeight:12}},tooltip:{backgroundColor:'#fff',titleColor:'#333',bodyColor:'#666',borderColor:'#eee',borderWidth:1}},cutout:'60%'}});}
+function buildDayChart(){destroyChart('day');var ctx=document.getElementById('dayChart').getContext('2d');var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],counts=[0,0,0,0,0,0,0];allRequests.forEach(function(req){var d=new Date(req.preferred_date||req.created_at||0);var i=d.getDay();if(!isNaN(i))counts[i]++;});var maxC=Math.max.apply(null,counts),minC=Math.min.apply(null,counts);var colors=counts.map(function(c){if(c===maxC&&maxC>0)return'rgba(76,175,80,0.75)';if(c===minC)return'rgba(244,67,54,0.6)';return'rgba(102,126,234,0.5)';});charts.day=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{label:'Bookings',data:counts,backgroundColor:colors,borderColor:colors.map(function(c){return c.replace('0.75','1').replace('0.6','1').replace('0.5','1');}),borderWidth:2,borderRadius:6}]},options:cOpts()});var bestIdx=counts.indexOf(maxC),worstIdx=counts.indexOf(minC);document.getElementById('bestDay').textContent=days[bestIdx];document.getElementById('bestStat').textContent=counts[bestIdx]+' bookings';document.getElementById('worstDay').textContent=days[worstIdx];document.getElementById('worstStat').textContent=counts[worstIdx]+' bookings';}
+function cOpts(){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#333',bodyColor:'#555',borderColor:'#eee',borderWidth:1,padding:10}},scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#888',font:{size:11,family:'Segoe UI'}}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#888',font:{size:11,family:'Segoe UI'}},beginAtZero:true}}};}
+function getWeekData(){var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],labels=[],values=[],now=new Date();for(var i=6;i>=0;i--){var d=new Date(now);d.setDate(now.getDate()-i);labels.push(days[d.getDay()]);var ds=d.toISOString().split('T')[0];values.push(allRequests.filter(function(r){return(r.preferred_date||r.created_at||'').split('T')[0]===ds;}).length);}return{labels:labels,values:values};}
+function getMonthData(){var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],labels=[],values=[],now=new Date();for(var i=5;i>=0;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);labels.push(months[d.getMonth()]+' '+d.getFullYear().toString().slice(2));var m=d.getMonth(),y=d.getFullYear();values.push(allRequests.filter(function(r){var rd=new Date(r.preferred_date||r.created_at||0);return rd.getMonth()===m&&rd.getFullYear()===y;}).length);}return{labels:labels,values:values};}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function showPage(id){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.getElementById('page-'+id).classList.add('active');}
+function getArea(addr){if(!addr)return'';var p=addr.split(',');return p.length>1?p[p.length-2].trim():p[0].trim();}
+function fmtDate(d){if(!d)return'—';try{var dt=new Date(d);return isNaN(dt)?d:dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+function fmtTime(t){if(!t)return'—';var p=t.split(':'),hr=parseInt(p[0]);return(hr%12||12)+':'+(p[1]||'00')+' '+(hr>=12?'PM':'AM');}
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function safeUser(){try{return JSON.parse(localStorage.getItem('user')||'{}');}catch(e){return{};}}
+function showToast(msg,type){var t=document.getElementById('toast');t.innerHTML=msg;t.className='toast '+(type||'')+' show';setTimeout(function(){t.classList.remove('show');},3000);}
+function logout(){if(confirm('Are you sure you want to logout?')){localStorage.removeItem('token');localStorage.removeItem('user');localStorage.removeItem('workingPort');window.location.href='../login.html';}}
+</script>
+</body>
+</html>

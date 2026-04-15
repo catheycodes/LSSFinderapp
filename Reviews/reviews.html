@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rate & Review - Local Skill Finder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#f6f4ff;--card:#fff;--purple:#6c47ff;--purple2:#8b68ff;
+  --purple-light:#f0ecff;--gold:#f59e0b;--gold-light:#fffbeb;
+  --green:#10b981;--green-light:#ecfdf5;
+  --red:#ef4444;--red-light:#fef2f2;
+  --text:#1a1523;--text2:#6b7280;--text3:#9ca3af;
+  --border:#e5e7eb;--border2:#d1d5db;
+  --r:14px;--r-sm:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);}
+
+/* NAV */
+.nav{background:var(--card);border-bottom:1px solid var(--border);padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.nav-brand{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:1rem;color:var(--text);text-decoration:none;}
+.nav-icon{width:30px;height:30px;background:var(--purple);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.nav-back{font-size:13px;color:var(--text2);text-decoration:none;display:flex;align-items:center;gap:4px;padding:5px 12px;border:1px solid var(--border2);border-radius:20px;transition:all .15s;}
+.nav-back:hover{background:var(--purple-light);color:var(--purple);border-color:var(--purple);}
+
+/* PAGE */
+.page{max-width:780px;margin:0 auto;padding:2rem 1.25rem;}
+.page-title{font-size:1.6rem;font-weight:700;margin-bottom:.3rem;}
+.page-sub{font-size:13.5px;color:var(--text2);margin-bottom:2rem;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:#ede9fe;border-radius:10px;padding:4px;margin-bottom:2rem;width:fit-content;}
+.tab{padding:8px 22px;border-radius:7px;border:none;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--text2);background:transparent;transition:all .18s;display:flex;align-items:center;gap:6px;}
+.tab.active{background:var(--card);color:var(--purple);box-shadow:0 2px 8px rgba(108,71,255,.12);}
+.tab-badge{background:var(--purple);color:#fff;border-radius:20px;font-size:10px;padding:1px 7px;min-width:18px;text-align:center;}
+.tab.active .tab-badge{background:var(--purple);}
+
+/* SECTION */
+.sec{display:none;}
+.sec.on{display:block;}
+
+/* PENDING CARDS */
+.pending-empty{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:3rem;text-align:center;}
+.pending-empty .ei{font-size:2.5rem;margin-bottom:.75rem;}
+.pending-empty h3{font-size:1rem;margin-bottom:.4rem;}
+.pending-empty p{font-size:13px;color:var(--text2);}
+
+.pending-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:.85rem;display:flex;align-items:center;gap:1.25rem;transition:all .2s;}
+.pending-card:hover{border-color:var(--purple);box-shadow:0 4px 20px rgba(108,71,255,.1);}
+.w-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;border:2px solid var(--border);}
+.w-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.pc-info{flex:1;}
+.pc-name{font-size:15px;font-weight:700;margin-bottom:2px;}
+.pc-cat{font-size:12.5px;color:var(--text2);margin-bottom:4px;}
+.pc-date{font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+.done-pill{background:var(--green-light);color:var(--green);font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:6px;}
+.rate-now-btn{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;border:none;border-radius:var(--r-sm);padding:10px 20px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.rate-now-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(108,71,255,.35);}
+
+/* MY REVIEWS */
+.rv-summary{background:var(--gold-light);border:2px solid #fde68a;border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;}
+.rv-big{text-align:center;}
+.rv-num{font-size:3.2rem;font-weight:800;line-height:1;color:var(--text);}
+.rv-stars-big{display:flex;gap:2px;justify-content:center;margin:4px 0;}
+.rv-total{font-size:12px;color:var(--text2);}
+.rv-bars{flex:1;min-width:150px;}
+.br{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.br-n{font-size:11.5px;color:var(--text2);width:8px;}
+.br-track{flex:1;height:6px;background:#fde68a;border-radius:3px;overflow:hidden;}
+.br-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .6s ease;}
+.br-c{font-size:11px;color:var(--text3);width:20px;}
+
+.rv-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;margin-bottom:.85rem;animation:fadeUp .25s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin-bottom:.6rem;}
+.rc-worker{display:flex;align-items:center;gap:.7rem;}
+.rc-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid var(--border);flex-shrink:0;}
+.rc-wname{font-size:14px;font-weight:700;}
+.rc-wcat{font-size:11.5px;color:var(--text2);}
+.rc-stars{display:flex;gap:2px;}
+.rc-comment{font-size:13.5px;color:var(--text2);line-height:1.7;font-style:italic;background:#f9fafb;border-left:3px solid var(--gold);padding:.65rem .9rem;border-radius:0 6px 6px 0;margin-top:.6rem;}
+.rc-date{font-size:11px;color:var(--text3);margin-top:.6rem;}
+
+/* STAR MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(26,21,35,.6);z-index:500;align-items:center;justify-content:center;padding:1rem;}
+.mo.open{display:flex;}
+.mo-card{background:var(--card);border-radius:20px;width:100%;max-width:460px;overflow:hidden;animation:popUp .25s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes popUp{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.mo-head{background:linear-gradient(135deg,var(--purple) 0%,#4f46e5 100%);padding:1.5rem 1.75rem;color:#fff;position:relative;}
+.mo-head h3{font-size:1.15rem;font-weight:700;margin-bottom:.2rem;}
+.mo-head p{font-size:12.5px;opacity:.85;}
+.mo-x{position:absolute;top:.9rem;right:1.1rem;background:rgba(255,255,255,.2);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mo-x:hover{background:rgba(255,255,255,.35);}
+.mo-body{padding:1.75rem;}
+.mo-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem;display:block;}
+.star-row{display:flex;gap:5px;margin-bottom:.4rem;direction:rtl;width:fit-content;}
+.star-row input{display:none;}
+.star-row label{font-size:2.5rem;color:#e5e7eb;cursor:pointer;transition:all .12s;line-height:1;}
+.star-row label:hover,.star-row label:hover~label,.star-row input:checked~label{color:var(--gold);}
+.star-row label:hover{transform:scale(1.15);}
+.star-hint{font-size:12.5px;font-weight:600;color:var(--purple);min-height:18px;margin-bottom:1.25rem;}
+.mo-textarea{width:100%;background:#f9fafb;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:.75rem 1rem;font-family:inherit;font-size:13.5px;color:var(--text);resize:vertical;min-height:100px;outline:none;transition:border-color .15s;margin-bottom:1.5rem;}
+.mo-textarea:focus{border-color:var(--purple);background:#fff;}
+.mo-actions{display:flex;gap:.75rem;}
+.mo-cancel{flex:1;padding:11px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r-sm);font-family:inherit;font-size:13.5px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;}
+.mo-cancel:hover{background:#f3f4f6;}
+.mo-submit{flex:2;padding:11px;background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;border:none;border-radius:var(--r-sm);font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .2s;}
+.mo-submit:hover{opacity:.9;transform:translateY(-1px);}
+.mo-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.mo-success{display:none;text-align:center;padding:2.5rem 1.75rem;}
+.mo-tick{width:68px;height:68px;background:var(--green-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 1rem;animation:bounce .5s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes bounce{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.mo-success h4{font-size:1.2rem;font-weight:700;margin-bottom:.4rem;}
+.mo-success p{font-size:13.5px;color:var(--text2);line-height:1.6;}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:.75rem 1.25rem;border-radius:10px;font-size:13.5px;font-weight:600;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:9999;color:#fff;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{background:#065f46;}
+.toast.err{background:#991b1b;}
+
+@media(max-width:600px){.pending-card{flex-wrap:wrap;}.rate-now-btn{width:100%;text-align:center;}.rv-summary{flex-direction:column;align-items:flex-start;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">
+    <div class="nav-icon">🔧</div> Local Skill Finder
+  </a>
+  <a class="nav-back" href="user-dashboard.html">← Dashboard</a>
+</nav>
+
+<div class="page">
+  <div class="page-title">⭐ Ratings &amp; Reviews</div>
+  <div class="page-sub">Rate workers after completed bookings · See your review history</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('pending',this)">
+      Rate a Worker <span class="tab-badge" id="pendingBadge">0</span>
+    </button>
+    <button class="tab" onclick="showTab('mine',this)">
+      My Reviews <span class="tab-badge" id="mineBadge">0</span>
+    </button>
+  </div>
+
+  <!-- PENDING -->
+  <div class="sec on" id="sec-pending">
+    <div id="pendingList"><div class="pending-empty"><div class="ei">⏳</div><h3>Loading...</h3></div></div>
+  </div>
+
+  <!-- MY REVIEWS -->
+  <div class="sec" id="sec-mine">
+    <div id="mineList"><div class="pending-empty"><div class="ei">⏳</div><h3>Loading...</h3></div></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="mo">
+  <div class="mo-card">
+    <div id="moForm">
+      <div class="mo-head">
+        <button class="mo-x" onclick="closeMo()">✕</button>
+        <h3 id="moWorker">Rate this worker</h3>
+        <p id="moSvc">Service completed</p>
+      </div>
+      <div class="mo-body">
+        <span class="mo-label">Your Rating ★</span>
+        <div class="star-row" id="starRow">
+          <input type="radio" id="r5" name="rv" value="5"><label for="r5">★</label>
+          <input type="radio" id="r4" name="rv" value="4"><label for="r4">★</label>
+          <input type="radio" id="r3" name="rv" value="3"><label for="r3">★</label>
+          <input type="radio" id="r2" name="rv" value="2"><label for="r2">★</label>
+          <input type="radio" id="r1" name="rv" value="1"><label for="r1">★</label>
+        </div>
+        <div class="star-hint" id="starHint">Tap a star to rate</div>
+        <span class="mo-label">Your Experience (optional)</span>
+        <textarea class="mo-textarea" id="rvComment" placeholder="How was the service? Quality, punctuality, professionalism..."></textarea>
+        <div class="mo-actions">
+          <button class="mo-cancel" onclick="closeMo()">Cancel</button>
+          <button class="mo-submit" id="moSubmit" onclick="submitRv()">⭐ Submit Review</button>
+        </div>
+      </div>
+    </div>
+    <div class="mo-success" id="moSuccess">
+      <div class="mo-tick">⭐</div>
+      <h4>Review Submitted!</h4>
+      <p>Thank you for your feedback.<br>Your review helps others choose better.</p>
+      <button class="mo-submit" style="margin-top:1.5rem;width:100%;padding:12px" onclick="closeMo()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API = 'http://localhost:5000/api';
+var pending = [], mine = [], reviewedIds = new Set();
+var curBooking = null;
+var HINTS = {1:'Poor 😞',2:'Fair 😐',3:'Good 😊',4:'Very good 😄',5:'Excellent! 🌟'};
+var COLORS = ['#6c47ff','#e91e63','#00bcd4','#ff9800','#10b981','#9c27b0'];
+
+function col(n){var i=0;for(var c of(n||''))i+=c.charCodeAt(0);return COLORS[i%COLORS.length];}
+function ini(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+function fmtD(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function stars(r,sz){var s='';for(var i=1;i<=5;i++)s+=`<span style="font-size:${sz||14}px;color:${i<=Math.round(r)?'#f59e0b':'#e5e7eb'}">${i<=Math.round(r)?'★':'☆'}</span>`;return s;}
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type==='ok'?'ok':'err')+' show';setTimeout(()=>t.classList.remove('show'),3000);}
+
+window.addEventListener('load',async()=>{
+  var token=localStorage.getItem('token');
+  var user={};try{user=JSON.parse(localStorage.getItem('user')||'{}');}catch(e){}
+  if(!token||user.role!=='customer'){window.location.href='../login.html';return;}
+
+  // Check if coming from completed booking (auto-open modal)
+  var params=new URLSearchParams(window.location.search);
+  var autoBookingId=params.get('booking_id');
+  var autoWorkerId =params.get('worker_id');
+
+  try{
+    var [pRes,mRes]=await Promise.all([
+      fetch(API+'/reviews/pending',{headers:{'Authorization':'Bearer '+token}}),
+      fetch(API+'/reviews/my',     {headers:{'Authorization':'Bearer '+token}})
+    ]);
+    var [pd,md]=await Promise.all([pRes.json(),mRes.json()]);
+    if(pd.success){pending=pd.bookings||[];renderPending();}
+    else renderPendingError(pd.message);
+    if(md.success){mine=md.reviews||[];mine.forEach(r=>reviewedIds.add(r.booking_id));renderMine();}
+  }catch(e){renderPendingError('Server not reachable. Run: node server.js');}
+
+  // Auto-open if redirected from booking-status
+  if(autoBookingId&&autoWorkerId){
+    var found=pending.find(b=>String(b.id)===String(autoBookingId));
+    if(found) openMo(found);
+    else{
+      // build a minimal booking object
+      openMo({id:parseInt(autoBookingId),worker_id:parseInt(autoWorkerId),
+        worker_full_name:params.get('worker_name')||'Worker',
+        worker_category:params.get('service')||'Service',
+        preferred_date:params.get('date')||''});
+    }
+  }
+
+  document.getElementById('mo').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMo();});
+  document.querySelectorAll('.star-row input').forEach(inp=>{
+    inp.addEventListener('change',function(){document.getElementById('starHint').textContent=HINTS[this.value]||'';});
+  });
+});
+
+function showTab(name,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('on');
+  btn.classList.add('active');
+}
+
+function renderPending(){
+  document.getElementById('pendingBadge').textContent=pending.length;
+  if(!pending.length){
+    document.getElementById('pendingList').innerHTML=
+      '<div class="pending-empty"><div class="ei">🎉</div><h3>All caught up!</h3><p>No completed bookings waiting for review.<br>Complete a booking to rate the worker.</p></div>';
+    return;
+  }
+  document.getElementById('pendingList').innerHTML=pending.map((b,i)=>{
+    var wn=b.worker_full_name||b.worker_name||'Worker';
+    var wp=b.worker_photo||b.profile_photo||'';
+    var wc=b.worker_category||b.category||'Service';
+    var c=col(wn);
+    var av=wp?`<div class="w-av"><img src="${esc(wp)}" alt=""></div>`
+              :`<div class="w-av" style="background:${c}">${ini(wn)}</div>`;
+    return `<div class="pending-card" style="animation:fadeUp .3s ease ${i*.07}s both">
+      ${av}
+      <div class="pc-info">
+        <div class="pc-name">${esc(wn)}</div>
+        <div class="pc-cat">${esc(wc)}</div>
+        <div class="pc-date">📅 Completed: ${fmtD(b.preferred_date||b.date)}<span class="done-pill">✓ Done</span></div>
+      </div>
+      <button class="rate-now-btn" onclick="openMoIdx(${i})">⭐ Rate Now</button>
+    </div>`;
+  }).join('');
+}
+
+function renderPendingError(msg){
+  document.getElementById('pendingList').innerHTML=
+    `<div class="pending-empty"><div class="ei">⚠️</div><h3>Could not load</h3><p>${esc(msg||'Server error')}</p></div>`;
+}
+
+function renderMine(){
+  document.getElementById('mineBadge').textContent=mine.length;
+  if(!mine.length){
+    document.getElementById('mineList').innerHTML=
+      '<div class="pending-empty"><div class="ei">📝</div><h3>No reviews yet</h3><p>Your submitted reviews will appear here.</p></div>';
+    return;
+  }
+  var dist={1:0,2:0,3:0,4:0,5:0};
+  var sum=0;
+  mine.forEach(r=>{dist[r.rating]=(dist[r.rating]||0)+1;sum+=r.rating;});
+  var avg=mine.length?(sum/mine.length).toFixed(1):0;
+  var bars=[5,4,3,2,1].map(n=>{
+    var pct=mine.length?Math.round((dist[n]/mine.length)*100):0;
+    return `<div class="br"><span class="br-n">${n}</span><div class="br-track"><div class="br-fill" style="width:${pct}%"></div></div><span class="br-c">${dist[n]}</span></div>`;
+  }).join('');
+  var summary=`<div class="rv-summary">
+    <div class="rv-big">
+      <div class="rv-num">${avg}</div>
+      <div class="rv-stars-big">${stars(avg,20)}</div>
+      <div class="rv-total">${mine.length} review${mine.length!==1?'s':''}</div>
+    </div>
+    <div class="rv-bars">${bars}</div>
+  </div>`;
+  var cards=mine.map((r,i)=>{
+    var wn=r.worker_name||'Worker';var c=col(wn);
+    return `<div class="rv-card" style="animation-delay:${i*.07}s">
+      <div class="rc-top">
+        <div class="rc-worker">
+          <div class="rc-av" style="background:${c}">${ini(wn)}</div>
+          <div><div class="rc-wname">${esc(wn)}</div><div class="rc-wcat">${esc(r.worker_category||'—')}</div></div>
+        </div>
+        <div class="rc-stars">${stars(r.rating,16)}</div>
+      </div>
+      ${r.comment?`<div class="rc-comment">"${esc(r.comment)}"</div>`:''}
+      <div class="rc-date">📅 ${fmtD(r.created_at)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('mineList').innerHTML=summary+cards;
+}
+
+function openMoIdx(i){openMo(pending[i]);}
+function openMo(b){
+  curBooking=b;
+  var wn=b.worker_full_name||b.worker_name||'Worker';
+  var wc=b.worker_category||b.category||'Service';
+  document.getElementById('moWorker').textContent='Rate '+wn;
+  document.getElementById('moSvc').textContent=wc+(b.preferred_date?' · '+fmtD(b.preferred_date||b.date):'');
+  document.querySelectorAll('.star-row input').forEach(i=>i.checked=false);
+  document.getElementById('starHint').textContent='Tap a star to rate';
+  document.getElementById('rvComment').value='';
+  document.getElementById('moForm').style.display='block';
+  document.getElementById('moSuccess').style.display='none';
+  document.getElementById('moSubmit').disabled=false;
+  document.getElementById('moSubmit').textContent='⭐ Submit Review';
+  document.getElementById('mo').classList.add('open');
+}
+function closeMo(){
+  document.getElementById('mo').classList.remove('open');
+  if(document.getElementById('moSuccess').style.display==='block'){
+    var token=localStorage.getItem('token');
+    if(token){
+      fetch(API+'/reviews/pending',{headers:{'Authorization':'Bearer '+token}})
+        .then(r=>r.json()).then(d=>{if(d.success){pending=d.bookings||[];renderPending();}}).catch(()=>{});
+      fetch(API+'/reviews/my',{headers:{'Authorization':'Bearer '+token}})
+        .then(r=>r.json()).then(d=>{if(d.success){mine=d.reviews||[];renderMine();}}).catch(()=>{});
+    }
+  }
+  curBooking=null;
+}
+
+async function submitRv(){
+  if(!curBooking)return;
+  var ri=document.querySelector('.star-row input:checked');
+  if(!ri){toast('Please select a star rating!','err');return;}
+  var btn=document.getElementById('moSubmit');
+  btn.disabled=true;btn.textContent='Submitting...';
+  var token=localStorage.getItem('token');
+  try{
+    var res=await fetch(API+'/reviews/submit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({booking_id:curBooking.id,worker_id:curBooking.worker_id,
+        rating:parseInt(ri.value),comment:document.getElementById('rvComment').value.trim()})
+    });
+    var d=await res.json();
+    if(d.success){
+      reviewedIds.add(curBooking.id);
+      document.getElementById('moForm').style.display='none';
+      document.getElementById('moSuccess').style.display='block';
+    }else{toast(d.message||'Failed','err');btn.disabled=false;btn.textContent='⭐ Submit Review';}
+  }catch(e){toast('Server error','err');btn.disabled=false;btn.textContent='⭐ Submit Review';}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Local Skill Finder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem; }
+        .register-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .register-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; }
+        .register-header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .register-header p { opacity: 0.9; }
+        .register-body { padding: 2rem; }
+
+        .returning-panel { display: none; background: linear-gradient(135deg, #667eea10, #764ba210); border: 2px solid #667eea44; border-radius: 16px; padding: 1.75rem; margin-bottom: 1.5rem; text-align: center; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .returning-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 2rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; overflow: hidden; }
+        .returning-avatar img { width: 100%; height: 100%; object-fit: cover; display: none; border-radius: 50%; }
+        .returning-avatar.has-photo span { display: none; }
+        .returning-avatar.has-photo img  { display: block; }
+        .returning-panel h3 { color: #333; font-size: 1.1rem; margin-bottom: 0.25rem; }
+        .returning-panel .ret-role { font-size: 0.85rem; font-weight: 600; margin-bottom: 1.25rem; }
+        .ret-role.customer { color: #667eea; }
+        .ret-role.worker   { color: #e65100; }
+        .ret-pw-group { position: relative; margin-bottom: 1rem; text-align: left; }
+        .ret-pw-group label { display: block; font-size: 0.82rem; color: #555; font-weight: 600; margin-bottom: 0.4rem; }
+        .ret-pw-group input { width: 100%; padding: 0.75rem 1rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; font-family: inherit; transition: border-color 0.3s; }
+        .ret-pw-group input:focus { outline: none; border-color: #667eea; }
+        .ret-login-btn { width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.3s; margin-bottom: 0.75rem; }
+        .ret-login-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 18px rgba(102,126,234,0.4); }
+        .ret-login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .ret-not-you { font-size: 0.82rem; color: #888; }
+        .ret-not-you button { background: none; border: none; color: #667eea; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.82rem; text-decoration: underline; }
+        .ret-divider { display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0 0.5rem; }
+        .ret-divider::before, .ret-divider::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
+        .ret-divider span { color: #aaa; font-size: 0.82rem; white-space: nowrap; }
+
+        .already-logged-in { display: none; background: linear-gradient(135deg, #667eea15, #764ba215); border: 2px solid #667eea55; border-radius: 14px; padding: 1.75rem; text-align: center; margin-bottom: 1.5rem; }
+        .already-logged-in .ali-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+        .already-logged-in h3 { color: #333; font-size: 1.1rem; margin-bottom: 0.4rem; }
+        .already-logged-in p { color: #666; font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.5; }
+        .ali-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+        .ali-btn { padding: 0.7rem 1.4rem; border-radius: 25px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9rem; text-decoration: none; border: none; transition: all 0.3s; }
+        .ali-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .ali-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .ali-btn-outline { background: white; color: #667eea; border: 2px solid #667eea; }
+
+        .form-disabled-msg { display: none; background: #fff8e1; border: 1.5px solid #ffcc02; border-radius: 10px; padding: 0.85rem 1rem; color: #795500; font-size: 0.9rem; font-weight: 500; margin-bottom: 1rem; text-align: center; }
+
+        .form-section { margin-bottom: 2rem; }
+        .form-section h3 { color: #333; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.5rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; font-size: 0.9rem; }
+        .required { color: #dc3545; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; font-family: inherit; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .help-text { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
+
+        .photo-upload-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+        .photo-circle { width: 110px; height: 110px; border-radius: 50%; border: 3px dashed #667eea; background: #f0f2ff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; transition: all 0.3s; }
+        .photo-circle:hover { background: #e4e8ff; border-style: solid; }
+        .photo-circle .ph-icon { font-size: 2.2rem; }
+        .photo-circle .ph-hint { font-size: 0.68rem; color: #888; margin-top: 3px; }
+        .photo-circle img { display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .photo-circle.filled .ph-icon, .photo-circle.filled .ph-hint { display: none; }
+        .photo-circle.filled img { display: block; }
+        #w_profilePhotoInput { display: none; }
+        .photo-change-link { font-size: 0.82rem; color: #667eea; cursor: pointer; text-decoration: underline; background: none; border: none; font-family: inherit; }
+
+        .category-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        .category-row select { flex: 1; }
+        .btn-add-cat-inline { width: 48px; min-width: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; padding: 1.75rem 1.5rem; width: 320px; max-width: 92vw; box-shadow: 0 15px 50px rgba(0,0,0,0.25); }
+        .modal-box h4 { color: #333; margin-bottom: 1rem; }
+        .modal-box input { width: 100%; padding: 0.7rem 0.9rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; font-family: inherit; margin-bottom: 1rem; }
+        .modal-btns { display: flex; gap: 0.6rem; }
+        .modal-btns button { flex: 1; padding: 0.65rem; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-modal-confirm { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-modal-cancel { background: #f0f0f0; color: #555; }
+
+        .price-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center; }
+        .price-sep { color: #667eea; font-weight: 700; text-align: center; font-size: 1.1rem; }
+        .price-field { position: relative; }
+        .price-field .rupee { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #667eea; font-weight: 700; pointer-events: none; }
+        .price-field input { padding-left: 1.85rem !important; }
+        .strength-bar { height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
+        .strength-fill { height: 100%; width: 0%; transition: all 0.3s; }
+        .strength-text { font-size: 0.8rem; margin-top: 0.25rem; }
+        .days-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 0.5rem; }
+        .day-checkbox { display: none; }
+        .day-label { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.6rem 0.2rem; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 600; color: #888; background: #fafafa; transition: all 0.2s; user-select: none; text-align: center; }
+        .day-label .ds { font-size: 0.95rem; margin-bottom: 2px; }
+        .day-checkbox:checked + .day-label { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; transform: translateY(-2px); }
+        .hours-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center; }
+        .hrs-sep { color: #667eea; font-weight: 700; text-align: center; }
+        .terms-agreement { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1.5rem 0; }
+        .terms-agreement input { margin-top: 0.25rem; }
+        .terms-agreement label { color: #666; font-size: 0.9rem; line-height: 1.5; }
+        .terms-agreement a { color: #667eea; text-decoration: none; }
+        .register-btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .register-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .register-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .login-link { text-align: center; margin-top: 1.5rem; color: #666; }
+        .login-link a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .back-home { text-align: center; margin-top: 1rem; }
+        .back-home a { color: #999; text-decoration: none; font-size: 0.9rem; }
+        .alert { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: none; }
+        .alert-error { background: #fee; color: #c33; border: 1px solid #fcc; }
+        .alert-success { background: #efe; color: #383; border: 1px solid #cfc; }
+
+        .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+        .popup-box { background: white; border-radius: 20px; padding: 2.5rem 2rem; text-align: center; max-width: 320px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275); }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .popup-tick { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+        .popup-tick svg { width: 36px; height: 36px; stroke: white; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .popup-tick svg path { stroke-dasharray: 50; stroke-dashoffset: 50; animation: drawTick 0.4s 0.5s forwards; }
+        @keyframes drawTick { to { stroke-dashoffset: 0; } }
+        .popup-title { font-size: 1.3rem; font-weight: 700; color: #333; margin-bottom: 0.5rem; }
+        .popup-msg { color: #666; font-size: 0.95rem; }
+
+        /* ══════════════════════════════════════════
+           QR PAYMENT SECTION STYLES
+        ══════════════════════════════════════════ */
+        .qr-section-wrap {
+            background: linear-gradient(135deg, #f0f4ff 0%, #faf0ff 100%);
+            border: 2px dashed #a5b4fc;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .qr-section-wrap:hover { border-color: #667eea; background: linear-gradient(135deg, #e8edff 0%, #f5e8ff 100%); }
+        .qr-section-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #4a3fb5; font-size: 0.95rem; margin-bottom: 0.35rem; justify-content: center; }
+        .qr-section-sub { font-size: 0.78rem; color: #888; margin-bottom: 1.25rem; }
+        .qr-upload-methods { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+        .qr-method-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+            padding: 0.85rem 1.25rem; border: 2px solid #c5cef9; border-radius: 12px;
+            background: white; cursor: pointer; font-family: inherit; transition: all 0.25s;
+            color: #4a3fb5; font-weight: 600; font-size: 0.82rem; min-width: 110px;
+        }
+        .qr-method-btn:hover { border-color: #667eea; background: #f0f2ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.2); }
+        .qr-method-btn .qm-icon { font-size: 1.8rem; }
+        .qr-method-btn.active { border-color: #667eea; background: linear-gradient(135deg, #667eea15, #764ba215); }
+
+        /* QR Preview */
+        .qr-preview-wrap { display: none; flex-direction: column; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+        .qr-preview-wrap.show { display: flex; }
+        .qr-preview-img {
+            width: 160px; height: 160px; border-radius: 12px;
+            border: 3px solid #667eea; object-fit: contain;
+            background: white; padding: 6px;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.25);
+        }
+        .qr-preview-label { font-size: 0.8rem; color: #555; font-weight: 600; }
+        .qr-remove-btn { background: none; border: none; color: #e53935; font-size: 0.82rem; cursor: pointer; font-family: inherit; text-decoration: underline; }
+
+        /* Camera scanner area */
+        .qr-camera-wrap { display: none; flex-direction: column; align-items: center; gap: 0.75rem; }
+        .qr-camera-wrap.show { display: flex; }
+        .qr-video-container {
+            position: relative; width: 220px; height: 220px; border-radius: 12px;
+            overflow: hidden; border: 3px solid #667eea;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.3);
+        }
+        #qrVideo { width: 100%; height: 100%; object-fit: cover; }
+        .qr-scan-line {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            animation: scanLine 2s linear infinite;
+        }
+        @keyframes scanLine { 0%{top:0} 100%{top:100%} }
+        .qr-corner { position: absolute; width: 20px; height: 20px; border-color: #764ba2; border-style: solid; }
+        .qr-corner.tl { top:6px; left:6px; border-width: 3px 0 0 3px; }
+        .qr-corner.tr { top:6px; right:6px; border-width: 3px 3px 0 0; }
+        .qr-corner.bl { bottom:6px; left:6px; border-width: 0 0 3px 3px; }
+        .qr-corner.br { bottom:6px; right:6px; border-width: 0 3px 3px 0; }
+        .qr-scan-hint { font-size: 0.8rem; color: #667eea; font-weight: 600; }
+        .qr-stop-btn { background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; padding: 0.5rem 1.2rem; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.85rem; }
+
+        /* UPI ID input method */
+        .qr-upi-wrap { display: none; flex-direction: column; align-items: center; gap: 0.75rem; width: 100%; }
+        .qr-upi-wrap.show { display: flex; }
+        .qr-upi-input { width: 100%; max-width: 320px; padding: 0.75rem 1rem; border: 2px solid #c5cef9; border-radius: 10px; font-size: 1rem; font-family: inherit; text-align: center; transition: border-color 0.3s; }
+        .qr-upi-input:focus { outline: none; border-color: #667eea; }
+        .qr-upi-hint { font-size: 0.78rem; color: #888; }
+
+        /* Saved state */
+        .qr-saved-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            background: #d1fae5; border: 1.5px solid #6ee7b7; color: #065f46;
+            border-radius: 20px; padding: 0.3rem 0.9rem; font-size: 0.82rem; font-weight: 700;
+        }
+
+        #customerForm { display: none; }
+        #workerForm   { display: none; }
+
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .days-grid { grid-template-columns: repeat(4,1fr); }
+            .qr-upload-methods { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="register-container">
+    <div class="register-header">
+        <h1 id="pageTitle">Create Account</h1>
+        <p id="pageSubtitle">Join Local Skill Finder today</p>
+    </div>
+    <div class="register-body">
+
+        <div class="returning-panel" id="returningPanel">
+            <div class="returning-avatar" id="retAvatar">
+                <span id="retInitial">U</span>
+                <img id="retPhoto" src="" alt="">
+            </div>
+            <h3 id="retName">Welcome back!</h3>
+            <div class="ret-role" id="retRole">Customer Account</div>
+            <div class="ret-pw-group">
+                <label>Enter your password to login</label>
+                <input type="password" id="retPassword" placeholder="Your password..." onkeydown="if(event.key==='Enter') quickLogin()">
+            </div>
+            <button class="ret-login-btn" id="retLoginBtn" onclick="quickLogin()">&#9889; Login as <span id="retBtnName">User</span></button>
+            <div class="ret-not-you">Not you? <button onclick="clearReturning()">Register as someone else</button></div>
+            <div class="ret-divider"><span>or register a new account below</span></div>
+        </div>
+
+        <div class="already-logged-in" id="alreadyLoggedIn">
+            <div class="ali-icon">&#9989;</div>
+            <h3 id="aliTitle">You're already logged in!</h3>
+            <p id="aliMsg">You have an active session.</p>
+            <div class="ali-btns">
+                <a href="#" class="ali-btn ali-btn-primary" id="aliDashBtn">Go to Dashboard</a>
+                <button class="ali-btn ali-btn-outline" onclick="logoutAndStay()">Logout &amp; Register New</button>
+            </div>
+        </div>
+        <div class="form-disabled-msg" id="disabledMsg"></div>
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Customer Form -->
+        <div id="customerForm">
+            <form id="customerRegisterForm">
+                <div class="form-section">
+                    <h3>Basic Information</h3>
+                    <div class="form-group"><label>Full Name <span class="required">*</span></label><input type="text" id="c_fullName" placeholder="Enter your full name" required></div>
+                    <div class="form-group"><label>Phone Number <span class="required">*</span></label><input type="tel" id="c_phone" placeholder="+91 98765 43210" required></div>
+                    <div class="form-group"><label>Email Address <span class="required">*</span></label><input type="email" id="c_email" placeholder="your@email.com" required></div>
+                    <div class="form-group"><label>Password <span class="required">*</span></label><input type="password" id="c_password" placeholder="Create a password" required></div>
+                </div>
+                <div class="form-section">
+                    <h3>Location</h3>
+                    <div class="form-group"><label>Address <span class="required">*</span></label><textarea id="c_address" placeholder="Enter your complete address" required></textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>City <span class="required">*</span></label><input type="text" id="c_city" placeholder="City" required></div>
+                        <div class="form-group"><label>Pincode <span class="required">*</span></label><input type="text" id="c_pincode" placeholder="628001" required></div>
+                    </div>
+                </div>
+                <div class="terms-agreement"><input type="checkbox" id="c_terms" required><label for="c_terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label></div>
+                <button type="submit" class="register-btn" id="customerSubmitBtn">Create Customer Account</button>
+            </form>
+        </div>
+
+        <!-- Worker Form -->
+        <div id="workerForm">
+            <form id="workerRegisterForm">
+                <div class="form-section">
+                    <h3>Profile Photo</h3>
+                    <div class="form-group">
+                        <div class="photo-upload-wrap">
+                            <div class="photo-circle" id="photoCircle" onclick="document.getElementById('w_profilePhotoInput').click()">
+                                <span class="ph-icon">&#128247;</span><span class="ph-hint">Tap to upload</span>
+                                <img id="profilePhotoPreview" src="" alt="">
+                            </div>
+                            <button type="button" class="photo-change-link" onclick="document.getElementById('w_profilePhotoInput').click()">Choose / Change Photo</button>
+                            <input type="file" id="w_profilePhotoInput" accept="image/*" onchange="handleProfilePhoto(event)">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>Basic Information</h3>
+                    <div class="form-group"><label>Full Name <span class="required">*</span></label><input type="text" id="w_fullName" placeholder="Enter your full name" required></div>
+                    <div class="form-group"><label>Phone Number <span class="required">*</span></label><input type="tel" id="w_phone" placeholder="+91 98765 43210" required></div>
+                </div>
+                <div class="form-section">
+                    <h3>Location</h3>
+                    <div class="form-group"><label>Address <span class="required">*</span></label><textarea id="w_address" placeholder="Enter your complete address" required></textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>City <span class="required">*</span></label><input type="text" id="w_city" placeholder="City" required></div>
+                        <div class="form-group"><label>Pincode <span class="required">*</span></label><input type="text" id="w_pincode" placeholder="628001" required></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>Account Credentials</h3>
+                    <div class="form-group"><label>Email <span class="required">*</span></label><input type="email" id="w_email" placeholder="your@email.com" required></div>
+                    <div class="form-group">
+                        <label>Password <span class="required">*</span></label>
+                        <input type="password" id="w_password" placeholder="Create a strong password" onkeyup="checkPasswordStrength()" required>
+                        <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                        <div class="strength-text" id="strengthText"></div>
+                    </div>
+                    <div class="form-group"><label>Confirm Password <span class="required">*</span></label><input type="password" id="w_confirmPassword" placeholder="Re-enter your password" required></div>
+                </div>
+                <div class="form-section">
+                    <h3>Availability</h3>
+                    <div class="form-group">
+                        <label>Available Days <span class="required">*</span></label>
+                        <div class="days-grid">
+                            <div><input type="checkbox" class="day-checkbox" id="d_mon" value="Monday"><label class="day-label" for="d_mon"><span class="ds">Mon</span>Monday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_tue" value="Tuesday"><label class="day-label" for="d_tue"><span class="ds">Tue</span>Tuesday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_wed" value="Wednesday"><label class="day-label" for="d_wed"><span class="ds">Wed</span>Wednesday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_thu" value="Thursday"><label class="day-label" for="d_thu"><span class="ds">Thu</span>Thursday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_fri" value="Friday"><label class="day-label" for="d_fri"><span class="ds">Fri</span>Friday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_sat" value="Saturday"><label class="day-label" for="d_sat"><span class="ds">Sat</span>Saturday</label></div>
+                            <div><input type="checkbox" class="day-checkbox" id="d_sun" value="Sunday"><label class="day-label" for="d_sun"><span class="ds">Sun</span>Sunday</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Working Hours <span class="required">*</span></label>
+                        <div class="hours-row"><input type="time" id="w_startTime" value="08:00" required><span class="hrs-sep">to</span><input type="time" id="w_endTime" value="18:00" required></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>Professional Details</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Service Category <span class="required">*</span></label>
+                            <div class="category-row">
+                                <select id="w_category" required>
+                                    <option value="">Select Category</option>
+                                    <option>Plumber</option><option>Electrician</option><option>Carpenter</option>
+                                    <option>Painter</option><option>Tutor</option><option>Tailor</option>
+                                    <option>Home Cook</option><option>House Cleaner</option><option>Mechanic</option><option>Gardener</option>
+                                </select>
+                                <button type="button" class="btn-add-cat-inline" onclick="openCatModal()">+</button>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Years of Experience <span class="required">*</span></label><input type="number" id="w_experience" placeholder="Years" min="0" max="50" required></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Price Range (Rs.) <span class="required">*</span></label>
+                        <div class="price-row">
+                            <div class="price-field"><span class="rupee">Rs.</span><input type="number" id="w_minPrice" placeholder="Min" min="0" required></div>
+                            <span class="price-sep">to</span>
+                            <div class="price-field"><span class="rupee">Rs.</span><input type="number" id="w_maxPrice" placeholder="Max" min="0" required></div>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Skills <span class="required">*</span></label><input type="text" id="w_skills" placeholder="E.g., Pipe Repair, Bathroom Fitting" required><p class="help-text">Separate with commas</p></div>
+                    <div class="form-group"><label>About Yourself <span class="required">*</span></label><textarea id="w_description" placeholder="Describe your services..." required></textarea></div>
+
+                    <!-- ══════════════════════════════════════════
+                         QR PAYMENT CODE SECTION (below About Yourself)
+                    ══════════════════════════════════════════ -->
+                    <div class="form-group">
+                        <label>&#128243; Payment QR Code <span style="background:#e8f5e9;color:#2e7d32;font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">Recommended</span></label>
+                        <p class="help-text" style="margin-bottom:0.75rem;">Add your UPI / GPay / PhonePe QR so customers can pay you directly after booking.</p>
+
+                        <div class="qr-section-wrap">
+                            <div class="qr-section-title">&#128181; Add Your Payment QR Code</div>
+                            <div class="qr-section-sub">Customers can scan this to pay you instantly — GPay, PhonePe, Paytm, UPI</div>
+
+                            <!-- Method buttons -->
+                            <div class="qr-upload-methods">
+                                <button type="button" class="qr-method-btn" id="qrUploadBtn" onclick="triggerQrUpload()">
+                                    <span class="qm-icon">&#128247;</span>Upload QR Image
+                                </button>
+                                <button type="button" class="qr-method-btn" id="qrScanBtn" onclick="startQrCamera()">
+                                    <span class="qm-icon">&#128269;</span>Scan from Camera
+                                </button>
+                                <button type="button" class="qr-method-btn" id="qrUpiBtn" onclick="toggleUpiInput()">
+                                    <span class="qm-icon">&#128279;</span>Enter UPI ID
+                                </button>
+                            </div>
+
+                            <input type="file" id="qrFileInput" accept="image/*" style="display:none" onchange="handleQrUpload(event)">
+
+                            <!-- QR Image Preview -->
+                            <div class="qr-preview-wrap" id="qrPreviewWrap">
+                                <img id="qrPreviewImg" class="qr-preview-img" src="" alt="QR Code">
+                                <div class="qr-preview-label">&#9989; QR Code ready for customers</div>
+                                <button type="button" class="qr-remove-btn" onclick="removeQr()">&#10005; Remove QR</button>
+                            </div>
+
+                            <!-- Camera scan -->
+                            <div class="qr-camera-wrap" id="qrCameraWrap">
+                                <div class="qr-video-container">
+                                    <video id="qrVideo" autoplay playsinline muted></video>
+                                    <div class="qr-scan-line"></div>
+                                    <div class="qr-corner tl"></div>
+                                    <div class="qr-corner tr"></div>
+                                    <div class="qr-corner bl"></div>
+                                    <div class="qr-corner br"></div>
+                                </div>
+                                <div class="qr-scan-hint">&#128247; Point camera at your QR code</div>
+                                <div style="font-size:0.78rem;color:#999;">Camera will capture the QR image automatically</div>
+                                <div style="display:flex;gap:0.6rem;">
+                                    <button type="button" class="qr-stop-btn" onclick="stopQrCamera()">&#9646;&#9646; Stop Camera</button>
+                                    <button type="button" class="qr-method-btn" style="min-width:auto;padding:0.5rem 1rem;" onclick="captureQrFrame()">&#128247; Capture</button>
+                                </div>
+                            </div>
+
+                            <!-- UPI ID input -->
+                            <div class="qr-upi-wrap" id="qrUpiWrap">
+                                <input type="text" class="qr-upi-input" id="qrUpiInput" placeholder="yourname@upi / 9876543210@paytm" oninput="handleUpiInput(this.value)">
+                                <div class="qr-upi-hint">&#8505;&#65039; UPI ID will be shown to customers on the booking page</div>
+                            </div>
+
+                            <!-- No QR state hint -->
+                            <div id="qrNoState" style="font-size:0.8rem;color:#aaa;margin-top:0.5rem;">
+                                &#9888;&#65039; Skip if you prefer cash payment
+                            </div>
+                        </div>
+                    </div>
+                    <!-- END QR SECTION -->
+
+                    <div class="form-group">
+                        <label>Upload Work Images</label>
+                        <input type="file" id="w_images" accept="image/*" multiple onchange="previewImages(event)">
+                        <div id="preview" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;"></div>
+                    </div>
+                </div>
+                <div class="terms-agreement"><input type="checkbox" id="w_terms" required><label for="w_terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label></div>
+                <button type="submit" class="register-btn" id="workerSubmitBtn">Create Worker Account</button>
+            </form>
+        </div>
+
+        <div class="login-link">Already have an account? <a href="login.html">Login</a></div>
+        <div class="back-home"><a href="index.html">Back to Home</a></div>
+    </div>
+</div>
+
+<!-- Category modal -->
+<div class="modal-overlay" id="catModal">
+    <div class="modal-box">
+        <h4>Add New Service Category</h4>
+        <input type="text" id="newCatInput" placeholder="e.g., Welder, AC Technician..." maxlength="50">
+        <div class="modal-btns">
+            <button type="button" class="btn-modal-cancel" onclick="closeCatModal()">Cancel</button>
+            <button type="button" class="btn-modal-confirm" onclick="confirmAddCategory()">Add Category</button>
+        </div>
+    </div>
+</div>
+
+<!-- Success popup -->
+<div class="popup-overlay" id="successPopup">
+    <div class="popup-box">
+        <div class="popup-tick"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></div>
+        <div class="popup-title">Successful!</div>
+        <div class="popup-msg" id="popupMsg">Account created successfully.</div>
+    </div>
+</div>
+
+<script>
+    var API_URL = 'http://localhost:5000/api';
+    var type = new URLSearchParams(window.location.search).get('type') || 'customer';
+
+    /* ── QR state ── */
+    var qrBase64 = '';       // base64 of QR image (from upload or camera)
+    var qrUpiId  = '';       // UPI ID if typed
+    var qrStream = null;     // camera stream
+
+    /* ══════════════════════════════════════════
+       PAGE LOAD
+    ══════════════════════════════════════════ */
+    window.addEventListener('load', function() {
+        var token = localStorage.getItem('token');
+        var user  = safeUser();
+
+        if (token && user && (user.full_name || user.name)) {
+            var role    = user.role || 'customer';
+            var name    = user.full_name || user.name;
+            var dashUrl = role === 'worker' ? 'worker/worker-dashboard.html' : 'user/user-dashboard.html';
+            document.getElementById('alreadyLoggedIn').style.display = 'block';
+            document.getElementById('aliTitle').textContent   = 'Hi ' + name + ', you are already logged in!';
+            document.getElementById('aliMsg').textContent     = 'You are logged in as a ' + role + '. Go to your dashboard or logout to register a new account.';
+            document.getElementById('aliDashBtn').href        = dashUrl;
+            document.getElementById('aliDashBtn').textContent = 'Go to ' + (role === 'worker' ? 'Worker' : 'Customer') + ' Dashboard';
+            var cBtn = document.getElementById('customerSubmitBtn');
+            var wBtn = document.getElementById('workerSubmitBtn');
+            if (cBtn) { cBtn.disabled = true; cBtn.textContent = 'Already Registered'; }
+            if (wBtn) { wBtn.disabled = true; wBtn.textContent = 'Already Registered'; }
+        } else {
+            var saved = getSavedUser();
+            if (saved && saved.email && saved.role === type) { showReturningPanel(saved); }
+        }
+
+        if (type === 'worker') {
+            document.getElementById('workerForm').style.display   = 'block';
+            document.getElementById('pageTitle').textContent      = 'Worker Registration';
+            document.getElementById('pageSubtitle').textContent   = 'Offer your services on Local Skill Finder';
+        } else {
+            document.getElementById('customerForm').style.display = 'block';
+            document.getElementById('pageTitle').textContent      = 'Customer Registration';
+            document.getElementById('pageSubtitle').textContent   = 'Find skilled workers near you';
+        }
+    });
+
+    /* ══════════════════════════════════════════
+       RETURNING USER
+    ══════════════════════════════════════════ */
+    function getSavedUser() { try { return JSON.parse(localStorage.getItem('savedUser') || 'null'); } catch(e) { return null; } }
+    function showReturningPanel(saved) {
+        document.getElementById('returningPanel').style.display = 'block';
+        var name = saved.full_name || saved.name || 'User';
+        var role = saved.role || 'customer';
+        document.getElementById('retInitial').textContent = name.charAt(0).toUpperCase();
+        if (saved.profile_photo) { document.getElementById('retPhoto').src = saved.profile_photo; document.getElementById('retAvatar').classList.add('has-photo'); }
+        document.getElementById('retName').textContent = 'Welcome back, ' + name + '!';
+        var roleEl = document.getElementById('retRole');
+        if (role === 'worker') { roleEl.textContent = '🔧 Worker Account'; roleEl.className = 'ret-role worker'; }
+        else { roleEl.textContent = '👤 Customer Account'; roleEl.className = 'ret-role customer'; }
+        document.getElementById('retBtnName').textContent = name;
+        setTimeout(function(){ document.getElementById('retPassword').focus(); }, 300);
+    }
+    async function quickLogin() {
+        var saved = getSavedUser(); if (!saved) return;
+        var pw = document.getElementById('retPassword').value;
+        if (!pw) { showAlert('Password-ஐ enter பண்ணு!', 'error'); return; }
+        var btn = document.getElementById('retLoginBtn'); btn.disabled = true; btn.textContent = 'Logging in...';
+        var role = saved.role || 'customer';
+        var endpoint = role === 'worker' ? API_URL + '/worker/login' : API_URL + '/customer/login';
+        try {
+            var res  = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email: saved.email, password: pw }) });
+            var data = await res.json();
+            if (data.success) {
+                var userObj = { ...data.user, role: role };
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user',  JSON.stringify(userObj));
+                localStorage.setItem('savedUser', JSON.stringify({ full_name: userObj.full_name || userObj.name, email: userObj.email, role: role, profile_photo: userObj.profile_photo || '' }));
+                showPopup('Welcome back, ' + (userObj.full_name || userObj.name) + '!');
+                setTimeout(function(){ window.location.href = role === 'worker' ? 'worker/worker-dashboard.html' : 'user/user-dashboard.html'; }, 1800);
+            } else {
+                showAlert(data.message || 'Wrong password!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '&#9889; Login as <span id="retBtnName">' + (saved.full_name || saved.name || 'User') + '</span>';
+                document.getElementById('retPassword').select();
+            }
+        } catch(e) {
+            showAlert('Cannot connect to server!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '&#9889; Login as <span id="retBtnName">' + (saved.full_name || saved.name || 'User') + '</span>';
+        }
+    }
+    function clearReturning() { localStorage.removeItem('savedUser'); document.getElementById('returningPanel').style.display = 'none'; }
+
+    /* ══════════════════════════════════════════
+       QR CODE FUNCTIONS
+    ══════════════════════════════════════════ */
+    function triggerQrUpload() {
+        stopQrCamera();
+        hideAllQrSubs();
+        document.getElementById('qrFileInput').click();
+        document.getElementById('qrUploadBtn').classList.add('active');
+    }
+
+    function handleQrUpload(e) {
+        var file = e.target.files[0]; if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            qrBase64 = ev.target.result;
+            qrUpiId  = '';
+            showQrPreview(qrBase64);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    }
+
+    function showQrPreview(src) {
+        document.getElementById('qrPreviewImg').src = src;
+        document.getElementById('qrPreviewWrap').classList.add('show');
+        document.getElementById('qrNoState').style.display = 'none';
+        document.getElementById('qrCameraWrap').classList.remove('show');
+        document.getElementById('qrUpiWrap').classList.remove('show');
+    }
+
+    function removeQr() {
+        qrBase64 = ''; qrUpiId = '';
+        document.getElementById('qrPreviewWrap').classList.remove('show');
+        document.getElementById('qrNoState').style.display = 'block';
+        document.querySelectorAll('.qr-method-btn').forEach(function(b){ b.classList.remove('active'); });
+    }
+
+    function startQrCamera() {
+        hideAllQrSubs();
+        document.getElementById('qrPreviewWrap').classList.remove('show');
+        document.getElementById('qrCameraWrap').classList.add('show');
+        document.getElementById('qrScanBtn').classList.add('active');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Camera not supported on this device/browser.'); return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(function(stream) {
+                qrStream = stream;
+                document.getElementById('qrVideo').srcObject = stream;
+            })
+            .catch(function(err) {
+                alert('Cannot access camera: ' + err.message);
+                document.getElementById('qrCameraWrap').classList.remove('show');
+            });
+    }
+
+    function stopQrCamera() {
+        if (qrStream) { qrStream.getTracks().forEach(function(t){ t.stop(); }); qrStream = null; }
+        document.getElementById('qrCameraWrap').classList.remove('show');
+        document.getElementById('qrScanBtn').classList.remove('active');
+    }
+
+    function captureQrFrame() {
+        var video = document.getElementById('qrVideo');
+        var canvas = document.createElement('canvas');
+        canvas.width  = video.videoWidth  || 320;
+        canvas.height = video.videoHeight || 320;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        qrBase64 = canvas.toDataURL('image/png');
+        qrUpiId  = '';
+        stopQrCamera();
+        showQrPreview(qrBase64);
+    }
+
+    function toggleUpiInput() {
+        var wrap = document.getElementById('qrUpiWrap');
+        var isOpen = wrap.classList.contains('show');
+        hideAllQrSubs();
+        stopQrCamera();
+        if (!isOpen) {
+            wrap.classList.add('show');
+            document.getElementById('qrUpiBtn').classList.add('active');
+            document.getElementById('qrUpiInput').focus();
+        }
+    }
+
+    function handleUpiInput(val) {
+        qrUpiId  = val.trim();
+        qrBase64 = '';
+        if (qrUpiId) {
+            document.getElementById('qrPreviewWrap').classList.remove('show');
+            document.getElementById('qrNoState').style.display = 'none';
+        } else {
+            document.getElementById('qrNoState').style.display = 'block';
+        }
+    }
+
+    function hideAllQrSubs() {
+        document.getElementById('qrUpiWrap').classList.remove('show');
+        document.querySelectorAll('.qr-method-btn').forEach(function(b){ b.classList.remove('active'); });
+    }
+
+    /* ══════════════════════════════════════════
+       HELPERS
+    ══════════════════════════════════════════ */
+    function safeUser() { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) { return {}; } }
+    function logoutAndStay() { localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.reload(); }
+
+    var profilePhotoBase64 = '';
+    function handleProfilePhoto(e) {
+        var file = e.target.files[0]; if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            profilePhotoBase64 = ev.target.result;
+            document.getElementById('profilePhotoPreview').src = profilePhotoBase64;
+            document.getElementById('photoCircle').classList.add('filled');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function openCatModal()  { document.getElementById('newCatInput').value=''; document.getElementById('catModal').classList.add('open'); setTimeout(function(){ document.getElementById('newCatInput').focus(); }, 120); }
+    function closeCatModal() { document.getElementById('catModal').classList.remove('open'); }
+    function confirmAddCategory() {
+        var val = document.getElementById('newCatInput').value.trim(); if (!val) return;
+        var sel = document.getElementById('w_category');
+        for (var i=0;i<sel.options.length;i++) { if (sel.options[i].value.toLowerCase()===val.toLowerCase()) { sel.value=sel.options[i].value; closeCatModal(); return; } }
+        sel.add(new Option(val,val)); sel.value=val; closeCatModal();
+    }
+    document.getElementById('catModal').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeCatModal(); });
+
+    function checkPasswordStrength() {
+        var pwd=document.getElementById('w_password').value; var s=0;
+        if(pwd.length>=8)s+=25; if(/[a-z]/.test(pwd)&&/[A-Z]/.test(pwd))s+=25; if(/[0-9]/.test(pwd))s+=25; if(/[^a-zA-Z0-9]/.test(pwd))s+=25;
+        var fill=document.getElementById('strengthFill'); var text=document.getElementById('strengthText');
+        fill.style.width=s+'%';
+        var cols=['','#dc3545','#ffc107','#17a2b8','#28a745']; var labs=['','Weak','Fair','Good','Strong'];
+        fill.style.background=cols[s/25]; text.textContent=labs[s/25]; text.style.color=cols[s/25];
+    }
+
+    var workerImagesBase64=[];
+    function previewImages(e) {
+        var preview=document.getElementById('preview'); preview.innerHTML=''; workerImagesBase64=[];
+        Array.from(e.target.files).forEach(function(file,idx){
+            var reader=new FileReader();
+            reader.onload=function(ev){
+                workerImagesBase64[idx]=ev.target.result;
+                var img=document.createElement('img');
+                img.src=ev.target.result;
+                img.style.cssText='width:90px;height:90px;object-fit:cover;border-radius:8px;border:2px solid #667eea;';
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showAlert(msg, type) {
+        var el=document.getElementById('alertMessage');
+        el.className='alert alert-'+(type||'error');
+        el.textContent=msg;
+        el.style.display='block';
+        el.scrollIntoView({behavior:'smooth',block:'center'});
+        setTimeout(function(){el.style.display='none';},5000);
+    }
+
+    function showPopup(msg) {
+        document.getElementById('popupMsg').textContent=msg;
+        document.getElementById('successPopup').style.display='flex';
+    }
+
+    /* ══════════════════════════════════════════
+       CUSTOMER REGISTER
+    ══════════════════════════════════════════ */
+    document.getElementById('customerRegisterForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var btn=document.getElementById('customerSubmitBtn'); btn.disabled=true; btn.textContent='Creating Account...';
+        try {
+            var res=await fetch(API_URL+'/customer/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+                full_name: document.getElementById('c_fullName').value.trim(),
+                phone:     document.getElementById('c_phone').value.trim(),
+                email:     document.getElementById('c_email').value.trim(),
+                password:  document.getElementById('c_password').value,
+                address:   document.getElementById('c_address').value.trim(),
+                city:      document.getElementById('c_city').value.trim(),
+                pincode:   document.getElementById('c_pincode').value.trim()
+            })});
+            var data=await res.json();
+            if (data.success) {
+                var userObj = {...data.user, role:'customer'};
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user',  JSON.stringify(userObj));
+                localStorage.setItem('savedUser', JSON.stringify({ full_name: userObj.full_name||userObj.name, email: userObj.email, role:'customer', profile_photo:'' }));
+                showPopup('Registration successful! Welcome!');
+                setTimeout(function(){window.location.href='user/user-dashboard.html';},2500);
+            } else { showAlert(data.message||'Registration failed!'); btn.disabled=false; btn.textContent='Create Customer Account'; }
+        } catch(err) { showAlert('Cannot connect to server!'); btn.disabled=false; btn.textContent='Create Customer Account'; }
+    });
+
+    /* ══════════════════════════════════════════
+       WORKER REGISTER
+    ══════════════════════════════════════════ */
+    document.getElementById('workerRegisterForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (document.getElementById('w_password').value!==document.getElementById('w_confirmPassword').value){showAlert('Passwords do not match!');return;}
+        var selectedDays=Array.from(document.querySelectorAll('.day-checkbox:checked')).map(function(c){return c.value;});
+        if (selectedDays.length===0){showAlert('Please select at least one available day!');return;}
+        var minP=parseFloat(document.getElementById('w_minPrice').value);
+        var maxP=parseFloat(document.getElementById('w_maxPrice').value);
+        if (isNaN(minP)||isNaN(maxP)){showAlert('Please enter valid price amounts!');return;}
+        if (minP>maxP){showAlert('Minimum price cannot exceed maximum price!');return;}
+        var btn=document.getElementById('workerSubmitBtn'); btn.disabled=true; btn.textContent='Creating Account...';
+
+        // Stop camera if still running
+        stopQrCamera();
+
+        // Build payment_qr object to save
+        var paymentQr = {};
+        if (qrBase64)  paymentQr.qr_image = qrBase64;
+        if (qrUpiId)   paymentQr.upi_id   = qrUpiId;
+
+        try {
+            var res=await fetch(API_URL+'/worker/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+                full_name:    document.getElementById('w_fullName').value.trim(),
+                phone:        document.getElementById('w_phone').value.trim(),
+                email:        document.getElementById('w_email').value.trim(),
+                password:     document.getElementById('w_password').value,
+                address:      document.getElementById('w_address').value.trim(),
+                city:         document.getElementById('w_city').value.trim(),
+                pincode:      document.getElementById('w_pincode').value.trim(),
+                category:     document.getElementById('w_category').value,
+                experience:   document.getElementById('w_experience').value,
+                min_price:    minP,
+                max_price:    maxP,
+                skills:       document.getElementById('w_skills').value.trim(),
+                description:  document.getElementById('w_description').value.trim(),
+                availability: selectedDays,
+                start_time:   document.getElementById('w_startTime').value,
+                end_time:     document.getElementById('w_endTime').value,
+                profile_photo:profilePhotoBase64,
+                work_images:  workerImagesBase64.filter(Boolean),
+                payment_qr:   paymentQr
+            })});
+            var data=await res.json();
+            if (data.success) {
+                var userObj = {...data.user, role:'worker', payment_qr: paymentQr};
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user',  JSON.stringify(userObj));
+                localStorage.setItem('savedUser', JSON.stringify({ full_name: userObj.full_name||userObj.name, email: userObj.email, role:'worker', profile_photo: profilePhotoBase64||'' }));
+                showPopup('Account created successfully!');
+                setTimeout(function(){window.location.href='worker/worker-createdb.html';},2500);
+            } else { showAlert(data.message||'Registration failed!'); btn.disabled=false; btn.textContent='Create Worker Account'; }
+        } catch(err) { showAlert('Cannot connect to server!'); btn.disabled=false; btn.textContent='Create Worker Account'; }
+    });
+</script>
+</body>
+</html>
