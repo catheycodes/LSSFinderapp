@@ -331,7 +331,7 @@
           <div class="section-head"><div class="section-title">⚙ Settings</div></div>
           <div style="padding:1.5rem 1.25rem;max-width:480px;">
             <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">API Base URL</div>
-            <input id="apiUrlInput" value="http://localhost:5000/api" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;margin-bottom:.75rem;">
+            <input id="apiUrlInput" value="https://lssfinderapp-backend-3.onrender.com/api" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;margin-bottom:.75rem;">
             <button class="filter-btn active" onclick="saveSettings()">Save &amp; reconnect</button>
             <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
               <div style="font-size:13px;font-weight:500;margin-bottom:.75rem;">Required backend routes</div>
@@ -379,7 +379,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-var API_URL='http://localhost:5000/api';
+var API_URL='https://lssfinderapp-backend-3.onrender.com/api';
 var adminToken='';
 var allWorkers=[],allCustomers=[],allBookings=[];
 var workerFilter='all',bookingFilter='all';

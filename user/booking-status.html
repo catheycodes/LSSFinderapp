@@ -170,7 +170,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    var API_URL    = 'http://localhost:5000/api';
+    var API_URL    = 'https://lssfinderapp-backend-3.onrender.com/api';
     var booking    = null;
     var bookingId  = null;   // DB id
     var fromDb     = false;
@@ -389,7 +389,7 @@
     var token = localStorage.getItem('token');
     if (!token) return;
  
-    fetch('http://localhost:5000/api/reviews/my', { headers: { 'Authorization': 'Bearer ' + token } })
+    fetch('https://lssfinderapp-backend-3.onrender.com/api/reviews/my', { headers: { 'Authorization': 'Bearer ' + token } })
         .then(r => r.json())
         .then(d => {
             if (!d.success) return;
